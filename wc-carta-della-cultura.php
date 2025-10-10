@@ -1,18 +1,18 @@
 <?php
 /**
- * Plugin name: ilGhera Carta Docente for WooCommerce - Premium
- * Plugin URI: https://www.ilghera.com/product/wc-carta-docente/
- * Description: Abilita in WooCommerce il pagamento con Carta del Docente prevista dallo stato Italiano.
+ * Plugin name: ilGhera Carta della Cultura for WooCommerce - Premium
+ * Plugin URI: https://www.ilghera.com/product/wc-carta-della-cultura/
+ * Description: Abilita in WooCommerce il pagamento con Carta della Cultura prevista dallo stato Italiano.
  * Author: ilGhera
  *
- * @package wc-carta-docente
- * Version: 1.4.7
- * Stable tag: 1.4.7
+ * @package wc-carta-della-cultura
+ * Version: 0.9.0
+ * Stable tag: 0.9.0
  * Author URI: https://ilghera.com
  * Requires at least: 4.0
  * Tested up to: 6.8
- * WC tested up to: 9
- * Text Domain: wccd
+ * WC tested up to: 10
+ * Text Domain: wccdc
  * Domain Path: /languages
  */
 
@@ -21,12 +21,12 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Attivazione
  */
-function wccd_premium_activation() {
+function wccdc_premium_activation() {
 
 	/*Se presente, disattiva la versione free del plugin*/
-	if ( function_exists( 'wccd_activation' ) ) {
-		deactivate_plugins( 'wc-carta-docente/wc-carta-docente.php' );
-		remove_action( 'plugins_loaded', 'wccd_activation' );
+	if ( function_exists( 'wccdc_activation' ) ) {
+		deactivate_plugins( 'wc-carta-della-cultura/wc-carta-della-cultura.php' );
+		remove_action( 'plugins_loaded', 'wccdc_activation' );
 		wp_safe_redirect( admin_url( 'plugins.php?plugin_status=all&paged=1&s' ) );
 	}
 
@@ -36,42 +36,42 @@ function wccd_premium_activation() {
 	}
 
 	/*Definizione costanti*/
-	define( 'WCCD_DIR', plugin_dir_path( __FILE__ ) );
-	define( 'WCCD_URI', plugin_dir_url( __FILE__ ) );
-	define( 'WCCD_INCLUDES', WCCD_DIR . 'includes/' );
-	define( 'WCCD_INCLUDES_URI', WCCD_URI . 'includes/' );
-	define( 'WCCD_VERSION', '1.4.7' );
+	define( 'WCCDC_DIR', plugin_dir_path( __FILE__ ) );
+	define( 'WCCDC_URI', plugin_dir_url( __FILE__ ) );
+	define( 'WCCDC_INCLUDES', WCCDC_DIR . 'includes/' );
+	define( 'WCCDC_INCLUDES_URI', WCCDC_URI . 'includes/' );
+	define( 'WCCDC_VERSION', '0.9.0' );
 
 	/*Main directory di upload*/
 	$wp_upload_dir = wp_upload_dir();
 
-	/*Creo se necessario la cartella wccd-private*/
-	if ( wp_mkdir_p( trailingslashit( $wp_upload_dir['basedir'] . '/wccd-private/files/backups' ) ) ) {
-		define( 'WCCD_PRIVATE', $wp_upload_dir['basedir'] . '/wccd-private/' );
-		define( 'WCCD_PRIVATE_URI', $wp_upload_dir['baseurl'] . '/wccd-private/' );
+	/*Creo se necessario la cartella wccdc-private*/
+	if ( wp_mkdir_p( trailingslashit( $wp_upload_dir['basedir'] . '/wccdc-private/files/backups' ) ) ) {
+		define( 'WCCDC_PRIVATE', $wp_upload_dir['basedir'] . '/wccdc-private/' );
+		define( 'WCCDC_PRIVATE_URI', $wp_upload_dir['baseurl'] . '/wccdc-private/' );
 	}
 
 	/*Requires*/
-	require WCCD_INCLUDES . 'class-wccd-teacher-gateway.php';
-	require WCCD_INCLUDES . 'class-wccd-soap-client.php';
-	require WCCD_INCLUDES . 'class-wccd-admin.php';
-	require WCCD_INCLUDES . 'class-wccd.php';
-	require WCCD_INCLUDES . 'ilghera-notice/class-ilghera-notice.php';
+	require WCCDC_INCLUDES . 'class-wccdc-teacher-gateway.php';
+	require WCCDC_INCLUDES . 'class-wccdc-soap-client.php';
+	require WCCDC_INCLUDES . 'class-wccdc-admin.php';
+	require WCCDC_INCLUDES . 'class-wccdc.php';
+	require WCCDC_INCLUDES . 'ilghera-notice/class-ilghera-notice.php';
 
 	/**
 	 * Script e folgi di stile front-end
 	 *
 	 * @return void
 	 */
-	function wccd_load_scripts() {
-		wp_enqueue_style( 'wccd-style', WCCD_URI . 'css/wc-carta-docente.css', array(), WCCD_VERSION );
-		wp_enqueue_script( 'wccd-scripts', WCCD_URI . 'js/wc-carta-docente.js', array(), WCCD_VERSION, false );
+	function wccdc_load_scripts() {
+		wp_enqueue_style( 'wccdc-style', WCCDC_URI . 'css/wc-carta-della-cultura.css', array(), WCCDC_VERSION );
+		wp_enqueue_script( 'wccdc-scripts', WCCDC_URI . 'js/wc-carta-della-cultura.js', array(), WCCDC_VERSION, false );
 		wp_localize_script(
-			'wccd-scripts',
-			'wccdOptions',
+			'wccdc-scripts',
+			'wccdcOptions',
 			array(
 				'ajaxURL'          => admin_url( 'admin-ajax.php' ),
-				'couponConversion' => get_option( 'wccd-coupon' ),
+				'couponConversion' => get_option( 'wccdc-coupon' ),
 			)
 		);
 	}
@@ -81,22 +81,22 @@ function wccd_premium_activation() {
 	 *
 	 * @return void
 	 */
-	function wccd_load_admin_scripts() {
+	function wccdc_load_admin_scripts() {
 
 		$admin_page = get_current_screen();
 
-		if ( isset( $admin_page->base ) && 'woocommerce_page_wccd-settings' === $admin_page->base ) {
+		if ( isset( $admin_page->base ) && 'woocommerce_page_wccdc-settings' === $admin_page->base ) {
 
-			wp_enqueue_style( 'wccd-admin-style', WCCD_URI . 'css/wc-carta-docente-admin.css', array(), WCCD_VERSION );
-			wp_enqueue_script( 'wccd-admin-scripts', WCCD_URI . 'js/wc-carta-docente-admin.js', array(), WCCD_VERSION, false );
+			wp_enqueue_style( 'wccdc-admin-style', WCCDC_URI . 'css/wc-carta-della-cultura-admin.css', array(), WCCDC_VERSION );
+			wp_enqueue_script( 'wccdc-admin-scripts', WCCDC_URI . 'js/wc-carta-della-cultura-admin.js', array(), WCCDC_VERSION, false );
 
 			/* Nonce per l'eliminazione del certificato */
-			$delete_nonce  = wp_create_nonce( 'wccd-del-cert-nonce' );
-			$add_cat_nonce = wp_create_nonce( 'wccd-add-cat-nonce' );
+			$delete_nonce  = wp_create_nonce( 'wccdc-del-cert-nonce' );
+			$add_cat_nonce = wp_create_nonce( 'wccdc-add-cat-nonce' );
 
 			wp_localize_script(
-				'wccd-admin-scripts',
-				'wccdData',
+				'wccdc-admin-scripts',
+				'wccdcData',
 				array(
 					'delCertNonce' => $delete_nonce,
 					'addCatNonce'  => $add_cat_nonce,
@@ -104,20 +104,20 @@ function wccd_premium_activation() {
 			);
 
 			/*tzCheckBox*/
-			wp_enqueue_style( 'tzcheckbox-style', WCCD_URI . 'js/tzCheckbox/jquery.tzCheckbox/jquery.tzCheckbox.css', array(), WCCD_VERSION );
-			wp_enqueue_script( 'tzcheckbox', WCCD_URI . 'js/tzCheckbox/jquery.tzCheckbox/jquery.tzCheckbox.js', array( 'jquery' ), WCCD_VERSION, false );
-			wp_enqueue_script( 'tzcheckbox-script', WCCD_URI . 'js/tzCheckbox/js/script.js', array( 'jquery' ), WCCD_VERSION, false );
+			wp_enqueue_style( 'tzcheckbox-style', WCCDC_URI . 'js/tzCheckbox/jquery.tzCheckbox/jquery.tzCheckbox.css', array(), WCCDC_VERSION );
+			wp_enqueue_script( 'tzcheckbox', WCCDC_URI . 'js/tzCheckbox/jquery.tzCheckbox/jquery.tzCheckbox.js', array( 'jquery' ), WCCDC_VERSION, false );
+			wp_enqueue_script( 'tzcheckbox-script', WCCDC_URI . 'js/tzCheckbox/js/script.js', array( 'jquery' ), WCCDC_VERSION, false );
 
 		}
 
 	}
 
 	/*Script e folgi di stile*/
-	add_action( 'wp_enqueue_scripts', 'wccd_load_scripts' );
-	add_action( 'admin_enqueue_scripts', 'wccd_load_admin_scripts' );
+	add_action( 'wp_enqueue_scripts', 'wccdc_load_scripts' );
+	add_action( 'admin_enqueue_scripts', 'wccdc_load_admin_scripts' );
 
 }
-add_action( 'plugins_loaded', 'wccd_premium_activation', 1 );
+add_action( 'plugins_loaded', 'wccdc_premium_activation', 1 );
 
 
 /**
@@ -138,13 +138,13 @@ add_action(
  */
 require plugin_dir_path( __FILE__ ) . 'plugin-update-checker/plugin-update-checker.php';
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
-$wccd_update_checker = PucFactory::buildUpdateChecker(
-	'https://www.ilghera.com/wp-update-server-2/?action=get_metadata&slug=wc-carta-docente-premium',
+$wccdc_update_checker = PucFactory::buildUpdateChecker(
+	'https://www.ilghera.com/wp-update-server-2/?action=get_metadata&slug=wc-carta-della-cultura-premium',
 	__FILE__,
-	'wc-carta-docente-premium'
+	'wc-carta-della-cultura-premium'
 );
 
-$wccd_update_checker->addQueryArgFilter( 'wccd_secure_update_check' );
+$wccdc_update_checker->addQueryArgFilter( 'wccdc_secure_update_check' );
 
 /**
  * PUC Secure update check
@@ -153,8 +153,8 @@ $wccd_update_checker->addQueryArgFilter( 'wccd_secure_update_check' );
  *
  * @return array
  */
-function wccd_secure_update_check( $query_args ) {
-	$key = base64_encode( get_option( 'wccd-premium-key' ) );
+function wccdc_secure_update_check( $query_args ) {
+	$key = base64_encode( get_option( 'wccdc-premium-key' ) );
 
 	if ( $key ) {
 		$query_args['premium-key'] = $key;
@@ -171,17 +171,17 @@ function wccd_secure_update_check( $query_args ) {
  *
  * @return void
  */
-function wccd_update_message( $plugin_data, $response ) {
+function wccdc_update_message( $plugin_data, $response ) {
 
 	$message = null;
-	$key     = get_option( 'wccd-premium-key' );
+	$key     = get_option( 'wccdc-premium-key' );
 
 	$message = null;
 
 	if ( ! $key ) {
 
 		/* Translators: the admin URL */
-		$message = sprintf( __( 'Per ricevere aggiornamenti devi inserire la tua <b>Premium Key</b> nelle <a href="%sadmin.php/?page=wccd-settings">impostazioni del plugin</a>. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-docente-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wccd' ), admin_url() );
+		$message = sprintf( __( 'Per ricevere aggiornamenti devi inserire la tua <b>Premium Key</b> nelle <a href="%sadmin.php/?page=wccdc-settings">impostazioni del plugin</a>. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wccdc' ), admin_url() );
 
 	} else {
 
@@ -191,9 +191,9 @@ function wccd_update_message( $plugin_data, $response ) {
 		$now         = strtotime( 'today' );
 
 		if ( $limit < $now ) {
-			$message = __( 'Sembra che la tua <strong>Premium Key</strong> sia scaduta. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-docente-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wccd' );
+			$message = __( 'Sembra che la tua <strong>Premium Key</strong> sia scaduta. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wccdc' );
 		} elseif ( 3518 !== intval( $decoded_key[2] ) ) {
-			$message = __( 'Sembra che la tua <strong>Premium Key</strong> non sia valida. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-docente-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wccd' );
+			$message = __( 'Sembra che la tua <strong>Premium Key</strong> non sia valida. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wccdc' );
 		}
 	}
 
@@ -205,8 +205,8 @@ function wccd_update_message( $plugin_data, $response ) {
 		),
 	);
 
-	echo ( $message ) ? '<br><span class="wccd-alert">' . wp_kses( $message, $allowed ) . '</span>' : '';
+	echo ( $message ) ? '<br><span class="wccdc-alert">' . wp_kses( $message, $allowed ) . '</span>' : '';
 
 }
-add_action( 'in_plugin_update_message-wc-carta-docente-premium/wc-carta-docente.php', 'wccd_update_message', 10, 2 );
+add_action( 'in_plugin_update_message-wc-carta-della-cultura-premium/wc-carta-della-cultura.php', 'wccdc_update_message', 10, 2 );
 
