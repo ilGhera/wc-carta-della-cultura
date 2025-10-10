@@ -1,17 +1,17 @@
 /**
- * ilGhera Carta Docente for WC - CSS
+ * ilGhera Carta della Cultura for WC - CSS
  * @author ilGhera
- * @package wc-carta-docente/css
+ * @package wc-carta-della-cultura/css
  * @version 0.9.4
  */
 
-input#wc-codice-docente {
+input#wc-codice-carta-della-cultura {
 	display: block;
 	margin-top: 0.5rem;
 	width: 100%;
 }
 
-label[for="wc-codice-docente"] {
+label[for="wc-codice-carta-della-cultura"] {
 	text-transform: uppercase;
 	display: block;
 }
