@@ -24,7 +24,6 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 	 */
 	public static $coupon_option;
 
-
 	/**
 	 * Orders on hold option
 	 *
@@ -32,14 +31,12 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 	 */
 	public static $orders_on_hold;
 
-
 	/**
 	 * Exclude shipping from the payment
 	 *
 	 * @var bool
 	 */
 	public static $exclude_shipping;
-
 
 	/**
 	 * The constructor
@@ -83,7 +80,6 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 		add_shortcode( 'checkout-url', array( $this, 'get_checkout_payment_url' ) );
 
 	}
-
 
 	/**
 	 * Disabilita il metodo di pagamento se i prodotti a carrello richiedono buoni con ambito differente
@@ -238,7 +234,6 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 	}
 
-
 	/**
 	 * Campo per l'inserimento del buono nella pagina di checkout
 	 */
@@ -254,7 +249,6 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 		</p>
 		<?php
 	}
-
 
 	/**
 	 * Restituisce la cateogia prodotto corrispondente al bene acquistabile con il buono
@@ -290,7 +284,6 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 		}
 
 	}
-
 
 	/**
 	 * Tutti i prodotti dell'ordine devono essere della tipologia (cat) consentita dal buono Carta della Cultura.
@@ -337,7 +330,6 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 	}
 
-
 	/**
 	 * Add the shortcode to get the specific checkout URL.
 	 *
@@ -358,7 +350,6 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 		}
 
 	}
-
 
 	/**
 	 * Mostra il buono Carta della Cultura nella thankyou page, nelle mail e nella pagina dell'ordine.
@@ -429,7 +420,6 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 	}
 
-
 	/**
 	 * Ricava il coupon id dal suo codice
 	 *
@@ -497,7 +487,6 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 		}
 
 	}
-
 
 	/**
 	 * Processa il buono Carta della Cultura inserito
@@ -627,7 +616,6 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 		return $output;
 
 	}
-
 
 	/**
 	 * Gestisce il processo di pagamento, verificando la validità del buono inserito dall'utente

@@ -11,11 +11,11 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * WCCD_Soap_Client class
+ * WCCDC_Soap_Client class
  *
  * @since 1.4.6
  */
-class WCCD_Soap_Client {
+class WCCDC_Soap_Client {
 
 	/**
 	 * Opzione sandbox
@@ -66,7 +66,6 @@ class WCCD_Soap_Client {
 	 */
 	public $import;
 
-
 	/**
 	 * The constructor
 	 *
@@ -80,22 +79,21 @@ class WCCD_Soap_Client {
 		$this->sandbox = get_option( 'wccdc-sandbox' );
 
 		if ( $this->sandbox ) {
-			$this->local_cert = WCCD_DIR . 'demo/wccdc-demo-certificate.pem';
+			$this->local_cert = WCCDC_DIR . 'demo/wccdc-demo-certificate.pem';
 			$this->location   = 'https://wstest.cartadeldocente.istruzione.it/VerificaVoucherDocWEB/VerificaVoucher';
 			$this->passphrase = 'm3D0T4aM';
 
 		} else {
-			$this->local_cert = WCCD_PRIVATE . $this->get_local_cert();
+			$this->local_cert = WCCDC_PRIVATE . $this->get_local_cert();
 			$this->location   = 'https://ws.cartadeldocente.istruzione.it/VerificaVoucherDocWEB/VerificaVoucher';
 			$this->passphrase = $this->get_user_passphrase();
 		}
 
-		$this->wsdl           = WCCD_INCLUDES_URI . 'VerificaVoucher.wsdl';
+		$this->wsdl           = WCCDC_INCLUDES_URI . 'VerificaVoucher.wsdl';
 		$this->codice_voucher = $codice_voucher;
 		$this->import         = $import;
 
 	}
-
 
 	/**
 	 * Restituisce il nome del certificato presente nella cartella "Private"
@@ -109,7 +107,6 @@ class WCCD_Soap_Client {
 		}
 	}
 
-
 	/**
 	 * Restituisce la password memorizzata dall'utente nella compilazione del form
 	 *
@@ -118,7 +115,6 @@ class WCCD_Soap_Client {
 	public function get_user_passphrase() {
 		return base64_decode( get_option( 'wccdc-password' ) );
 	}
-
 
 	/**
 	 * Istanzia il SoapClient
@@ -150,7 +146,6 @@ class WCCD_Soap_Client {
 		return $soap_client;
 	}
 
-
 	/**
 	 * Chiamata Check di tipo 1 e 2
 	 *
@@ -171,7 +166,6 @@ class WCCD_Soap_Client {
 
 		return $check;
 	}
-
 
 	/**
 	 * Chiamata Confirm utile ad utilizzare solo parte del valore del buono
