@@ -94,7 +94,7 @@ class WCCDC {
 
 				foreach ( $coupons as $coupon ) {
 
-					if ( false !== strpos( $coupon, 'wccdc' ) ) {
+					if ( false !== strpos( $coupon, 'wc-carta-della-cultura' ) ) {
 
 						if ( $return ) {
 
@@ -179,7 +179,7 @@ class WCCDC {
 				if ( 1 !== intval( $notice ) ) {
 
 					/* Translators: Notifica all'utente nella pagina di checkout */
-					wc_add_notice( sprintf( __( 'Buono Carta del Cultura - %s', 'wccdc' ), $notice ), 'error' );
+					wc_add_notice( sprintf( __( 'Buono Carta del Cultura - %s', 'wc-carta-della-cultura' ), $notice ), 'error' );
 
 				} else {
 

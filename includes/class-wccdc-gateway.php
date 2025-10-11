@@ -214,14 +214,14 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 				'enabled'     => array(
 					'title'   => __( 'Enable/Disable', 'woocommerce' ),
 					'type'    => 'checkbox',
-					'label'   => __( 'Abilita pagamento con Carta della Cultura', 'wccdc' ),
+					'label'   => __( 'Abilita pagamento con Carta della Cultura', 'wc-carta-della-cultura' ),
 					'default' => 'yes',
 				),
 				'title'       => array(
 					'title'       => __( 'Title', 'woocommerce' ),
 					'type'        => 'text',
-					'description' => __( 'This controls the title which the user sees during checkout.', 'wccdc' ),
-					'default'     => __( 'Carta della Cultura', 'wccdc' ),
+					'description' => __( 'This controls the title which the user sees during checkout.', 'wc-carta-della-cultura' ),
+					'default'     => __( 'Carta della Cultura', 'wc-carta-della-cultura' ),
 					'desc_tip'    => true,
 				),
 				'description' => array(
@@ -242,7 +242,7 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 		<p>
 			<?php echo wp_kses_post( $this->description ); ?>
 			<label for="wc-codice-carta-della-cultura">
-				<?php esc_html_e( 'Inserisci qui il tuo codice', 'wccdc' ); ?>
+				<?php esc_html_e( 'Inserisci qui il tuo codice', 'wc-carta-della-cultura' ); ?>
 				<span class="required">*</span>
 			</label>
 			<input type="text" class="wc-codice-carta-della-cultura" id="wc-codice-carta-della-cultura" name="wc-codice-carta-della-cultura" />
@@ -365,7 +365,7 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 		foreach ( $order->get_coupon_codes() as $coupon_code ) {
 
-			if ( false !== strpos( $coupon_code, 'wccdc' ) ) {
+			if ( false !== strpos( $coupon_code, 'wc-carta-della-cultura' ) ) {
 
 				$parts        = explode( '-', $coupon_code );
 				$teacher_code = isset( $parts[2] ) ? $parts[2] : null;
@@ -377,11 +377,11 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 		if ( 'carta-della-cultura' === $data['payment_method'] ) {
 
-			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wccdc' ) . ': </strong>' . esc_html( $order->get_meta( 'wc-codice-carta-della-cultura' ) ) . '</p>';
+			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wc-carta-della-cultura' ) . ': </strong>' . esc_html( $order->get_meta( 'wc-codice-carta-della-cultura' ) ) . '</p>';
 
 		} elseif ( $teacher_code ) {
 
-			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wccdc' ) . ': </strong>' . esc_html( $teacher_code ) . '</p>';
+			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wc-carta-della-cultura' ) . ': </strong>' . esc_html( $teacher_code ) . '</p>';
 
 		}
 
@@ -394,11 +394,11 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 				if ( ! $message ) {
 
-					$message = __( 'L\'ordine verrà completato manualmente nei prossimi giorni e, contestualmente, verrà validato il buono Carta della Cultura inserito. Riceverai una notifica email di conferma, grazie!', 'wccdc' );
+					$message = __( 'L\'ordine verrà completato manualmente nei prossimi giorni e, contestualmente, verrà validato il buono Carta della Cultura inserito. Riceverai una notifica email di conferma, grazie!', 'wc-carta-della-cultura' );
 
 				}
 
-				echo wp_kses_post( "<p>$message</p>", 'wccdc' );
+				echo wp_kses_post( "<p>$message</p>", 'wc-carta-della-cultura' );
 
 			} elseif ( 'failed' === $order->get_status() ) {
 
@@ -409,7 +409,7 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 				if ( ! $message ) {
 
 					/* Translators: URL per completare il pagamento */
-					$message = __( 'La validazone del buono Carta della Cultura ha restituito un errore e non è stato possibile completare l\'ordine, completa il pagamento a <a href="%s">questo indirizzo</a>.', 'wccdc' );
+					$message = __( 'La validazone del buono Carta della Cultura ha restituito un errore e non è stato possibile completare l\'ordine, completa il pagamento a <a href="%s">questo indirizzo</a>.', 'wc-carta-della-cultura' );
 
 				}
 
@@ -527,7 +527,7 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 			if ( ! $purchasable ) {
 
-				$output = __( 'Uno o più prodotti nel carrello non sono acquistabili con il buono inserito.', 'wccdc' );
+				$output = __( 'Uno o più prodotti nel carrello non sono acquistabili con il buono inserito.', 'wc-carta-della-cultura' );
 
 			} else {
 
@@ -552,10 +552,10 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 						if ( $convert ) {
 
-							$output = __( 'Il valore del buono inserito non è sufficiente ed è stato convertito in buono sconto.', 'wccdc' );
+							$output = __( 'Il valore del buono inserito non è sufficiente ed è stato convertito in buono sconto.', 'wc-carta-della-cultura' );
 						} else {
 
-							$output = __( 'Le spese di spedizione devono essere saldate con altro metodo di pagamento.', 'wccdc' );
+							$output = __( 'Le spese di spedizione devono essere saldate con altro metodo di pagamento.', 'wc-carta-della-cultura' );
 						}
 					}
 				} else {
@@ -658,7 +658,7 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 			} else {
 
 				/* Translators: Notifica all'utente nella pagina di checkout */
-				wc_add_notice( sprintf( __( 'Carta della Cultura - %s', 'wccdc' ), $notice ), 'error' );
+				wc_add_notice( sprintf( __( 'Carta della Cultura - %s', 'wc-carta-della-cultura' ), $notice ), 'error' );
 
 			}
 		}
