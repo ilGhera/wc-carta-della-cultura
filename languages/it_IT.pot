@@ -1,8 +1,8 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: WC Carta Docente 0.9.0\n"
-"POT-Creation-Date: 2025-10-11 10:11+0200\n"
+"Project-Id-Version: ilGhera Carta della Cultura for WC\n"
+"POT-Creation-Date: 2025-10-11 12:38+0200\n"
 "PO-Revision-Date: 2018-07-02 12:47+0200\n"
 "Last-Translator: \n"
 "Language-Team: ilGhera\n"
@@ -47,7 +47,7 @@ msgstr ""
 msgid ""
 "Attiva questa funzionalità per testare buoni Carta della Cultura in un "
 "ambiente di prova.<br>Richiedi i buoni test scrivendo a <a "
-"href=\"%s\">docenti@sogei.it</a>"
+"href=\"%s\">numeroverde@beniculturali.it</a>"
 msgstr ""
 
 #: includes/class-wccdc-admin.php:637
@@ -78,7 +78,7 @@ msgid ""
 "applicato all'ordine."
 msgstr ""
 
-#: includes/class-wccdc-admin.php:674 includes/class-wccdc-gateway.php:406
+#: includes/class-wccdc-admin.php:674 includes/class-wccdc-gateway.php:397
 msgid ""
 "L'ordine verrà completato manualmente nei prossimi giorni e, "
 "contestualmente, verrà validato il buono Carta della Cultura inserito. "
@@ -114,31 +114,31 @@ msgid ""
 "buono non sia andata a buon fine."
 msgstr ""
 
-#: includes/class-wccdc-gateway.php:219
+#: includes/class-wccdc-gateway.php:215
 msgid "Enable/Disable"
 msgstr ""
 
-#: includes/class-wccdc-gateway.php:221
+#: includes/class-wccdc-gateway.php:217
 msgid "Abilita pagamento con Carta della Cultura"
 msgstr ""
 
-#: includes/class-wccdc-gateway.php:225
+#: includes/class-wccdc-gateway.php:221
 msgid "Title"
 msgstr ""
 
-#: includes/class-wccdc-gateway.php:227
+#: includes/class-wccdc-gateway.php:223
 msgid "This controls the title which the user sees during checkout."
 msgstr ""
 
-#: includes/class-wccdc-gateway.php:228
+#: includes/class-wccdc-gateway.php:224
 msgid "Carta della Cultura"
 msgstr ""
 
-#: includes/class-wccdc-gateway.php:232
+#: includes/class-wccdc-gateway.php:228
 msgid "Messaggio utente"
 msgstr ""
 
-#: includes/class-wccdc-gateway.php:421
+#: includes/class-wccdc-gateway.php:412
 #, php-format
 msgid ""
 "La validazone del buono Carta della Cultura ha restituito un errore e non è "
@@ -146,23 +146,23 @@ msgid ""
 "href=\"%s\">questo indirizzo</a>."
 msgstr ""
 
-#: includes/class-wccdc-gateway.php:541
+#: includes/class-wccdc-gateway.php:530
 msgid ""
 "Uno o più prodotti nel carrello non sono acquistabili con il buono inserito."
 msgstr ""
 
-#: includes/class-wccdc-gateway.php:566
+#: includes/class-wccdc-gateway.php:555
 msgid ""
 "Il valore del buono inserito non è sufficiente ed è stato convertito in "
 "buono sconto."
 msgstr ""
 
-#: includes/class-wccdc-gateway.php:569
+#: includes/class-wccdc-gateway.php:558
 msgid ""
 "Le spese di spedizione devono essere saldate con altro metodo di pagamento."
 msgstr ""
 
-#: includes/class-wccdc-gateway.php:673
+#: includes/class-wccdc-gateway.php:661
 #, php-format
 msgid "Carta della Cultura - %s"
 msgstr ""
@@ -222,7 +222,7 @@ msgstr ""
 msgid "There is no changelog available."
 msgstr ""
 
-#: wc-carta-della-cultura.php:184
+#: wc-carta-della-cultura.php:187
 #, php-format
 msgid ""
 "Per ricevere aggiornamenti devi inserire la tua <b>Premium Key</b> nelle <a "
@@ -231,14 +231,14 @@ msgid ""
 "cultura-premium/\" target=\"_blank\">qui</a> per maggiori informazioni."
 msgstr ""
 
-#: wc-carta-della-cultura.php:194
+#: wc-carta-della-cultura.php:197
 msgid ""
 "Sembra che la tua <strong>Premium Key</strong> sia scaduta. Clicca <a "
 "href=\"https://www.ilghera.com/product/woocommerce-carta-della-cultura-"
 "premium/\" target=\"_blank\">qui</a> per maggiori informazioni."
 msgstr ""
 
-#: wc-carta-della-cultura.php:196
+#: wc-carta-della-cultura.php:199
 msgid ""
 "Sembra che la tua <strong>Premium Key</strong> non sia valida. Clicca <a "
 "href=\"https://www.ilghera.com/product/woocommerce-carta-della-cultura-"
