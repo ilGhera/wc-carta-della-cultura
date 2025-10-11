@@ -575,7 +575,7 @@ class WCCDC_Admin {
 					echo '<h3>' . esc_html__( 'Modalità Sandbox', 'wccdc' ) . '</h3>';
 				echo '<p class="description">';
 					/* Translators: the email address */
-					printf( wp_kses_post( __( 'Attiva questa funzionalità per testare buoni Carta della Cultura in un ambiente di prova.<br>Richiedi i buoni test scrivendo a <a href="%s">docenti@sogei.it</a>', 'wccdc' ) ), 'mailto:docenti@sogei.it' );
+					printf( wp_kses_post( __( 'Attiva questa funzionalità per testare buoni Carta della Cultura in un ambiente di prova.<br>Richiedi i buoni test scrivendo a <a href="%s">numeroverde@beniculturali.it</a>', 'wccdc' ) ), 'mailto:numeroverde@beniculturali.it' );
 				echo '</p>';
 
 					echo '<form name="wccdc-sandbox" class="wccdc-sandbox" method="post" enctype="multipart/form-data" action="">';
