@@ -3,7 +3,7 @@
  * Pagina opzioni e gestione certificati
  *
  * @author ilGhera
- * @package wc-carta-docente/includes
+ * @package wc-carta-della-cultura/includes
  *
  * @since 1.4.7
  */
@@ -31,14 +31,14 @@ class WCCD_Admin {
 	 */
 	public function __construct() {
 
-		$this->sandbox = get_option( 'wccd-sandbox' );
+		$this->sandbox = get_option( 'wccdc-sandbox' );
 
-		add_action( 'admin_init', array( $this, 'wccd_save_settings' ) );
+		add_action( 'admin_init', array( $this, 'wccdc_save_settings' ) );
 		add_action( 'admin_init', array( $this, 'generate_cert_request' ) );
 		add_action( 'admin_menu', array( $this, 'register_options_page' ) );
-		add_action( 'wp_ajax_wccd-delete-certificate', array( $this, 'delete_certificate_callback' ), 1 );
-		add_action( 'wp_ajax_wccd-add-cat', array( $this, 'add_cat_callback' ) );
-		add_action( 'wp_ajax_wccd-sandbox', array( $this, 'sandbox_callback' ) );
+		add_action( 'wp_ajax_wccdc-delete-certificate', array( $this, 'delete_certificate_callback' ), 1 );
+		add_action( 'wp_ajax_wccdc-add-cat', array( $this, 'add_cat_callback' ) );
+		add_action( 'wp_ajax_wccdc-sandbox', array( $this, 'sandbox_callback' ) );
 	}
 
 	/**
@@ -48,7 +48,7 @@ class WCCD_Admin {
 	 */
 	public function register_options_page() {
 
-		add_submenu_page( 'woocommerce', __( 'ilGhera Carta Docente for WooCommerce - Impostazioni', 'wccd' ), __( 'Carta Docente for WC', 'wccd' ), 'manage_options', 'wccd-settings', array( $this, 'wccd_settings' ) );
+		add_submenu_page( 'woocommerce', __( 'ilGhera Carta della Cultura for WooCommerce - Impostazioni', 'wccdc' ), __( 'Carta della Cultura for WC', 'wccdc' ), 'manage_options', 'wccdc-settings', array( $this, 'wccdc_settings' ) );
 
 	}
 
@@ -80,7 +80,7 @@ class WCCD_Admin {
 	 */
 	public function delete_certificate_callback() {
 
-		if ( isset( $_POST['wccd-delete'], $_POST['delete-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['delete-nonce'] ) ), 'wccd-del-cert-nonce' ) ) {
+		if ( isset( $_POST['wccdc-delete'], $_POST['delete-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['delete-nonce'] ) ), 'wccdc-del-cert-nonce' ) ) {
 
 			$cert = isset( $_POST['cert'] ) ? sanitize_text_field( wp_unslash( $_POST['cert'] ) ) : '';
 
@@ -98,7 +98,7 @@ class WCCD_Admin {
 	/**
 	 * Restituisce il nome esatto del bene Carta del Docente partendo dallo slug
 	 *
-	 * @param  array  $beni      l'elenco dei beni di carta del docente.
+	 * @param  array  $beni      l'elenco dei beni di Carta della Cultura.
 	 * @param  string $bene_slug lo slug del bene.
 	 *
 	 * @return string
@@ -146,8 +146,8 @@ class WCCD_Admin {
 			$bene_value = is_array( $data ) ? key( $data ) : '';
 			$term_value = $bene_value ? $data[ $bene_value ] : '';
 
-			echo '<select name="wccd-beni-' . esc_attr( $n ) . '" class="wccd-field beni">';
-				echo '<option value="">Bene carta docente</option>';
+			echo '<select name="wccdc-beni-' . esc_attr( $n ) . '" class="wccdc-field beni">';
+				echo '<option value="">Bene Carta della Cultura</option>';
 
 			foreach ( $beni as $bene ) {
 
@@ -156,7 +156,7 @@ class WCCD_Admin {
 			}
 			echo '</select>';
 
-			echo '<select name="wccd-categories-' . esc_attr( $n ) . '" class="wccd-field categories">';
+			echo '<select name="wccdc-categories-' . esc_attr( $n ) . '" class="wccdc-field categories">';
 				echo '<option value="">Categoria WooCommerce</option>';
 
 			foreach ( $terms as $term ) {
@@ -168,7 +168,7 @@ class WCCD_Admin {
 
 				echo '<div class="add-cat-container">';
 					echo '<img class="add-cat" src="' . esc_url( WCCD_URI . 'images/add-cat.png' ) . '">';
-					echo '<img class="add-cat-hover wccd" src="' . esc_url( WCCD_URI . 'images/add-cat-hover.png' ) . '">';
+					echo '<img class="add-cat-hover wccdc" src="' . esc_url( WCCD_URI . 'images/add-cat-hover.png' ) . '">';
 				echo '</div>';
 
 			} else {
@@ -190,7 +190,7 @@ class WCCD_Admin {
 	 */
 	public function add_cat_callback() {
 
-		if ( isset( $_POST['add-cat-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['add-cat-nonce'] ) ), 'wccd-add-cat-nonce' ) ) {
+		if ( isset( $_POST['add-cat-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['add-cat-nonce'] ) ), 'wccdc-add-cat-nonce' ) ) {
 
 			$number       = isset( $_POST['number'] ) ? sanitize_text_field( wp_unslash( $_POST['number'] ) ) : '';
 			$exclude_beni = isset( $_POST['exclude-beni'] ) ? sanitize_text_field( wp_unslash( $_POST['exclude-beni'] ) ) : '';
@@ -231,7 +231,7 @@ class WCCD_Admin {
 	 */
 	public function generate_cert_request() {
 
-		if ( isset( $_POST['wccd-generate-der-hidden'], $_POST['wccd-generate-der-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccd-generate-der-nonce'] ) ), 'wccd-generate-der' ) ) {
+		if ( isset( $_POST['wccdc-generate-der-hidden'], $_POST['wccdc-generate-der-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccdc-generate-der-nonce'] ) ), 'wccdc-generate-der' ) ) {
 
 			/*Crea il file .der*/
 			$country_name             = isset( $_POST['countryName'] ) ? sanitize_text_field( wp_unslash( $_POST['countryName'] ) ) : '';
@@ -241,11 +241,11 @@ class WCCD_Admin {
 			$organizational_unit_name = isset( $_POST['organizationalUnitName'] ) ? sanitize_text_field( wp_unslash( $_POST['organizationalUnitName'] ) ) : '';
 			$common_name              = isset( $_POST['commonName'] ) ? sanitize_text_field( wp_unslash( $_POST['commonName'] ) ) : '';
 			$email_address            = isset( $_POST['emailAddress'] ) ? sanitize_text_field( wp_unslash( $_POST['emailAddress'] ) ) : '';
-			$wccd_password            = isset( $_POST['wccd-password'] ) ? sanitize_text_field( wp_unslash( $_POST['wccd-password'] ) ) : '';
+			$wccdc_password            = isset( $_POST['wccdc-password'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-password'] ) ) : '';
 
 			/*Salvo passw nel db*/
-			if ( $wccd_password ) {
-				update_option( 'wccd-password', base64_encode( $wccd_password ) );
+			if ( $wccdc_password ) {
+				update_option( 'wccdc-password', base64_encode( $wccdc_password ) );
 			}
 
 			$dn = array(
@@ -319,7 +319,7 @@ class WCCD_Admin {
 	 *
 	 * @return string
 	 */
-	public function wccd_cert_activation() {
+	public function wccdc_cert_activation() {
 
 		$soap_client = new WCCD_Soap_Client( '11aa22bb', '' );
 
@@ -331,7 +331,7 @@ class WCCD_Admin {
 		} catch ( Exception $e ) {
 
 			$notice = isset( $e->detail->FaultVoucher->exceptionMessage ) ? $e->detail->FaultVoucher->exceptionMessage : $e->faultstring;
-			error_log( 'Error wccd_cert_activation: ' . print_r( $e, true ) );
+			error_log( 'Error wccdc_cert_activation: ' . print_r( $e, true ) );
 
 			return $notice;
 
@@ -345,12 +345,12 @@ class WCCD_Admin {
 	 */
 	public function sandbox_callback() {
 
-		if ( isset( $_POST['sandbox'], $_POST['nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'wccd-sandbox' ) ) {
+		if ( isset( $_POST['sandbox'], $_POST['nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'wccdc-sandbox' ) ) {
 
 			$this->sandbox = sanitize_text_field( wp_unslash( $_POST['sandbox'] ) );
 
-			update_option( 'wccd-sandbox', $this->sandbox );
-			update_option( 'wccd-cert-activation', $this->sandbox );
+			update_option( 'wccdc-sandbox', $this->sandbox );
+			update_option( 'wccdc-cert-activation', $this->sandbox );
 
 		}
 
@@ -363,91 +363,91 @@ class WCCD_Admin {
 	 *
 	 * @return void
 	 */
-	public function wccd_settings() {
+	public function wccdc_settings() {
 
 		/*Recupero le opzioni salvate nel db*/
-		$premium_key               = get_option( 'wccd-premium-key' );
-		$passphrase                = base64_decode( get_option( 'wccd-password' ) );
-		$categories                = get_option( 'wccd-categories' );
+		$premium_key               = get_option( 'wccdc-premium-key' );
+		$passphrase                = base64_decode( get_option( 'wccdc-password' ) );
+		$categories                = get_option( 'wccdc-categories' );
 		$tot_cats                  = $categories ? count( $categories ) : 0;
-		$wccd_image                = get_option( 'wccd-image' );
-		$wccd_items_check          = get_option( 'wccd-items-check' );
-		$wccd_orders_on_hold       = get_option( 'wccd-orders-on-hold' );
-		$wccd_exclude_shipping     = get_option( 'wccd-exclude-shipping' );
-		$wccd_coupon               = get_option( 'wccd-coupon' );
-		$wccd_email_subject        = get_option( 'wccd-email-subject' );
-		$wccd_email_heading        = get_option( 'wccd-email-heading' );
-		$wccd_email_order_received = get_option( 'wccd-email-order-received' );
-		$wccd_email_order_failed   = get_option( 'wccd-email-order-failed' );
+		$wccdc_image                = get_option( 'wccdc-image' );
+		$wccdc_items_check          = get_option( 'wccdc-items-check' );
+		$wccdc_orders_on_hold       = get_option( 'wccdc-orders-on-hold' );
+		$wccdc_exclude_shipping     = get_option( 'wccdc-exclude-shipping' );
+		$wccdc_coupon               = get_option( 'wccdc-coupon' );
+		$wccdc_email_subject        = get_option( 'wccdc-email-subject' );
+		$wccdc_email_heading        = get_option( 'wccdc-email-heading' );
+		$wccdc_email_order_received = get_option( 'wccdc-email-order-received' );
+		$wccdc_email_order_failed   = get_option( 'wccdc-email-order-failed' );
 
 		echo '<div class="wrap">';
 			echo '<div class="wrap-left">';
-				echo '<h1>ilGhera Carta Docente for WooCommerce- ' . esc_html( __( 'Impostazioni', 'wccd' ) ) . '</h1>';
+				echo '<h1>ilGhera Carta della Cultura for WooCommerce- ' . esc_html( __( 'Impostazioni', 'wccdc' ) ) . '</h1>';
 
 				/*Premium key form*/
 				echo '<form method="post" action="">';
-					echo '<table class="form-table wccd-table">';
-						echo '<th scope="row">' . esc_html__( 'Premium Key', 'wccd' ) . '</th>';
+					echo '<table class="form-table wccdc-table">';
+						echo '<th scope="row">' . esc_html__( 'Premium Key', 'wccdc' ) . '</th>';
 						echo '<td>';
-							echo '<input type="text" class="regular-text code" name="wccd-premium-key" id="wccd-premium-key" placeholder="' . esc_attr__( 'Inserisci la tua Premium Key', 'wccd' ) . '" value="' . esc_attr( $premium_key ) . '" />';
-							echo '<p class="description">' . wp_kses_post( __( 'Aggiungi la tua Premium Key e mantieni aggiornato <strong>ilGhera Carta Docente for Woocommerce - Premium</strong>.', 'wccd' ) ) . '</p>';
+							echo '<input type="text" class="regular-text code" name="wccdc-premium-key" id="wccdc-premium-key" placeholder="' . esc_attr__( 'Inserisci la tua Premium Key', 'wccdc' ) . '" value="' . esc_attr( $premium_key ) . '" />';
+							echo '<p class="description">' . wp_kses_post( __( 'Aggiungi la tua Premium Key e mantieni aggiornato <strong>ilGhera Carta della Cultura for Woocommerce - Premium</strong>.', 'wccdc' ) ) . '</p>';
 
-							wp_nonce_field( 'wccd-premium-key', 'wccd-premium-key-nonce' );
+							wp_nonce_field( 'wccdc-premium-key', 'wccdc-premium-key-nonce' );
 
 							echo '<input type="hidden" name="premium-key-sent" value="1" />';
-							echo '<input type="submit" class="button button-primary wccd-button"" value="' . esc_html__( 'Salva ', 'wccd' ) . '" />';
+							echo '<input type="submit" class="button button-primary wccdc-button"" value="' . esc_html__( 'Salva ', 'wccdc' ) . '" />';
 						echo '</td>';
 					echo '</table>';
 				echo '</form>';
 
 				/*Tabs*/
 				echo '<div class="icon32 icon32-woocommerce-settings" id="icon-woocommerce"></div>';
-				echo '<h2 id="wccd-admin-menu" class="nav-tab-wrapper woo-nav-tab-wrapper">';
-					echo '<a href="#" data-link="wccd-certificate" class="nav-tab nav-tab-active" onclick="return false;">' . esc_html( __( 'Certificato', 'wccd' ) ) . '</a>';
-					echo '<a href="#" data-link="wccd-options" class="nav-tab" onclick="return false;">' . esc_html__( 'Opzioni', 'wccd' ) . '</a>';
+				echo '<h2 id="wccdc-admin-menu" class="nav-tab-wrapper woo-nav-tab-wrapper">';
+					echo '<a href="#" data-link="wccdc-certificate" class="nav-tab nav-tab-active" onclick="return false;">' . esc_html( __( 'Certificato', 'wccdc' ) ) . '</a>';
+					echo '<a href="#" data-link="wccdc-options" class="nav-tab" onclick="return false;">' . esc_html__( 'Opzioni', 'wccdc' ) . '</a>';
 				echo '</h2>';
 
 				/*Certificate*/
-				echo '<div id="wccd-certificate" class="wccd-admin" style="display: block;">';
+				echo '<div id="wccdc-certificate" class="wccdc-admin" style="display: block;">';
 
 					/*Carica certificato .pem*/
-					echo '<h3>' . esc_html__( 'Carica il tuo certificato', 'wccd' ) . '</h3>';
-					echo '<p class="description">' . esc_html__( 'Se sei già in posseso di un certificato non devi fare altro che caricarlo con relativa password, nient\'altro.', 'wccd' ) . '</p>';
+					echo '<h3>' . esc_html__( 'Carica il tuo certificato', 'wccdc' ) . '</h3>';
+					echo '<p class="description">' . esc_html__( 'Se sei già in posseso di un certificato non devi fare altro che caricarlo con relativa password, nient\'altro.', 'wccdc' ) . '</p>';
 
-					echo '<form name="wccd-upload-certificate" class="wccd-upload-certificate one-of" method="post" enctype="multipart/form-data" action="">';
-						echo '<table class="form-table wccd-table">';
+					echo '<form name="wccdc-upload-certificate" class="wccdc-upload-certificate one-of" method="post" enctype="multipart/form-data" action="">';
+						echo '<table class="form-table wccdc-table">';
 
 							/*Carica certificato*/
 							echo '<tr>';
-								echo '<th scope="row">' . esc_html__( 'Carica certificato', 'wccd' ) . '</th>';
+								echo '<th scope="row">' . esc_html__( 'Carica certificato', 'wccdc' ) . '</th>';
 								echo '<td>';
 		if ( $file = self::get_the_file( '.pem' ) ) {
 
-			$activation = $this->wccd_cert_activation();
+			$activation = $this->wccdc_cert_activation();
 
 			if ( 'ok' === $activation ) {
 
 				echo '<span class="cert-loaded">' . esc_html( basename( $file ) ) . '</span>';
-				echo '<a class="button delete wccd-delete-certificate">' . esc_html__( 'Elimina', 'wccd' ) . '</a>';
-				echo '<p class="description">' . esc_html__( 'File caricato e attivato correttamente.', 'wccd' ) . '</p>';
+				echo '<a class="button delete wccdc-delete-certificate">' . esc_html__( 'Elimina', 'wccdc' ) . '</a>';
+				echo '<p class="description">' . esc_html__( 'File caricato e attivato correttamente.', 'wccdc' ) . '</p>';
 
-				update_option( 'wccd-cert-activation', 1 );
+				update_option( 'wccdc-cert-activation', 1 );
 
 			} else {
 
 				echo '<span class="cert-loaded error">' . esc_html( basename( $file ) ) . '</span>';
-				echo '<a class="button delete wccd-delete-certificate">' . esc_html__( 'Elimina', 'wccd' ) . '</a>';
+				echo '<a class="button delete wccdc-delete-certificate">' . esc_html__( 'Elimina', 'wccdc' ) . '</a>';
 
 				/* Translators: the error message */
-				echo '<p class="description">' . sprintf( esc_html__( 'L\'attivazione del certificato ha restituito il seguente errore: %s', 'wccd' ), esc_html( $activation ) ) . '</p>';
+				echo '<p class="description">' . sprintf( esc_html__( 'L\'attivazione del certificato ha restituito il seguente errore: %s', 'wccdc' ), esc_html( $activation ) ) . '</p>';
 
-				delete_option( 'wccd-cert-activation' );
+				delete_option( 'wccdc-cert-activation' );
 
 			}
 		} else {
 
-			echo '<input type="file" accept=".pem" name="wccd-certificate" class="wccd-certificate">';
-			echo '<p class="description">' . esc_html__( 'Carica il certificato (.pem) necessario alla connessione con Carta del docente', 'wccd' ) . '</p>';
+			echo '<input type="file" accept=".pem" name="wccdc-certificate" class="wccdc-certificate">';
+			echo '<p class="description">' . esc_html__( 'Carica il certificato (.pem) necessario alla connessione con Carta della Cultura', 'wccdc' ) . '</p>';
 
 		}
 
@@ -456,15 +456,15 @@ class WCCD_Admin {
 
 							/*Password utilizzata per la creazione del certificato*/
 							echo '<tr>';
-								echo '<th scope="row">' . esc_html__( 'Password', 'wccd' ) . '</th>';
+								echo '<th scope="row">' . esc_html__( 'Password', 'wccdc' ) . '</th>';
 								echo '<td>';
-									echo '<input type="password" name="wccd-password" placeholder="**********" value="' . esc_attr( $passphrase ) . '" required>';
-									echo '<p class="description">' . esc_html__( 'La password utilizzata per la generazione del certificato', 'wccd' ) . '</p>';
+									echo '<input type="password" name="wccdc-password" placeholder="**********" value="' . esc_attr( $passphrase ) . '" required>';
+									echo '<p class="description">' . esc_html__( 'La password utilizzata per la generazione del certificato', 'wccdc' ) . '</p>';
 
-									wp_nonce_field( 'wccd-upload-certificate', 'wccd-certificate-nonce' );
+									wp_nonce_field( 'wccdc-upload-certificate', 'wccdc-certificate-nonce' );
 
-									echo '<input type="hidden" name="wccd-certificate-hidden" value="1">';
-									echo '<input type="submit" class="button-primary wccd-button" value="' . esc_html__( 'Salva certificato', 'wccd' ) . '">';
+									echo '<input type="hidden" name="wccdc-certificate-hidden" value="1">';
+									echo '<input type="submit" class="button-primary wccdc-button" value="' . esc_html__( 'Salva certificato', 'wccdc' ) . '">';
 								echo '</td>';
 							echo '</tr>';
 
@@ -475,65 +475,65 @@ class WCCD_Admin {
 		if ( ! self::get_the_file( '.pem' ) ) {
 
 			/*Genera richiesta certificato .der*/
-			echo '<h3>' . esc_html__( 'Richiedi un certificato', 'wccd' ) . '</h3>';
-			echo '<p class="description">' . esc_html__( 'Con questo strumento puoi generare un file .der necessario per richiedere il tuo certificato su Carta del docente.', 'wccd' ) . '</p>';
+			echo '<h3>' . esc_html__( 'Richiedi un certificato', 'wccdc' ) . '</h3>';
+			echo '<p class="description">' . esc_html__( 'Con questo strumento puoi generare un file .der necessario per richiedere il tuo certificato su Carta della Cultura.', 'wccdc' ) . '</p>';
 
 			echo '<form id="generate-certificate-request" method="post" class="one-of" enctype="multipart/form-data" action="">';
-				echo '<table class="form-table wccd-table">';
+				echo '<table class="form-table wccdc-table">';
 					echo '<tr>';
-						echo '<th scope="row">' . esc_html__( 'Stato', 'wccd' ) . '</th>';
+						echo '<th scope="row">' . esc_html__( 'Stato', 'wccdc' ) . '</th>';
 						echo '<td>';
 							echo '<input type="text" name="countryName" placeholder="IT" required>';
 						echo '</td>';
 					echo '</tr>';
 
-					echo '<th scope="row">' . esc_html__( 'Provincia', 'wccd' ) . '</th>';
+					echo '<th scope="row">' . esc_html__( 'Provincia', 'wccdc' ) . '</th>';
 						echo '<td>';
 							echo '<input type="text" name="stateOrProvinceName" placeholder="Es. Milano" required>';
 						echo '</td>';
 					echo '</tr>';
 
-					echo '<th scope="row">' . esc_html__( 'Località', 'wccd' ) . '</th>';
+					echo '<th scope="row">' . esc_html__( 'Località', 'wccdc' ) . '</th>';
 						echo '<td>';
 							echo '<input type="text" name="localityName" placeholder="Es. Legnano" required>';
 						echo '</td>';
 					echo '</tr>';
 
-					echo '<th scope="row">' . esc_html__( 'Nome azienda', 'wccd' ) . '</th>';
+					echo '<th scope="row">' . esc_html__( 'Nome azienda', 'wccdc' ) . '</th>';
 						echo '<td>';
 							echo '<input type="text" name="organizationName" placeholder="Es. Taldeitali srl" required>';
 						echo '</td>';
 					echo '</tr>';
 
-					echo '<th scope="row">' . esc_html__( 'Reparto azienda', 'wccd' ) . '</th>';
+					echo '<th scope="row">' . esc_html__( 'Reparto azienda', 'wccdc' ) . '</th>';
 						echo '<td>';
 							echo '<input type="text" name="organizationalUnitName" placeholder="Es. Vendite" required>';
 						echo '</td>';
 					echo '</tr>';
 
-					echo '<th scope="row">' . esc_html__( 'Nome', 'wccd' ) . '</th>';
+					echo '<th scope="row">' . esc_html__( 'Nome', 'wccdc' ) . '</th>';
 						echo '<td>';
 							echo '<input type="text" name="commonName" placeholder="Es. Franco Bianchi" required>';
 						echo '</td>';
 					echo '</tr>';
 
-					echo '<th scope="row">' . esc_html__( 'Email', 'wccd' ) . '</th>';
+					echo '<th scope="row">' . esc_html__( 'Email', 'wccdc' ) . '</th>';
 						echo '<td>';
 							echo '<input type="email" name="emailAddress" placeholder="Es. franco.bianchi@taldeitali.it" required>';
 						echo '</td>';
 					echo '</tr>';
 
-					echo '<th scope="row">' . esc_html__( 'Password', 'wccd' ) . '</th>';
+					echo '<th scope="row">' . esc_html__( 'Password', 'wccdc' ) . '</th>';
 						echo '<td>';
-							echo '<input type="password" name="wccd-password" placeholder="**********" required>';
+							echo '<input type="password" name="wccdc-password" placeholder="**********" required>';
 						echo '</td>';
 					echo '</tr>';
 
 					echo '<th scope="row"></th>';
 						echo '<td>';
-						wp_nonce_field( 'wccd-generate-der', 'wccd-generate-der-nonce' );
-						echo '<input type="hidden" name="wccd-generate-der-hidden" value="1">';
-						echo '<input type="submit" name="generate-der" class="button-primary wccd-button generate-der" value="' . esc_attr__( 'Scarica file .der', 'wccd' ) . '">';
+						wp_nonce_field( 'wccdc-generate-der', 'wccdc-generate-der-nonce' );
+						echo '<input type="hidden" name="wccdc-generate-der-hidden" value="1">';
+						echo '<input type="submit" name="generate-der" class="button-primary wccdc-button generate-der" value="' . esc_attr__( 'Scarica file .der', 'wccdc' ) . '">';
 						echo '</td>';
 					echo '</tr>';
 
@@ -541,24 +541,24 @@ class WCCD_Admin {
 			echo '</form>';
 
 			/*Genera certificato .pem*/
-			echo '<h3>' . esc_html( __( 'Crea il tuo certificato', 'wccd' ) ) . '</h3>';
-			echo '<p class="description">' . esc_html__( 'Con questo ultimo passaggio, potrai iniziare a ricevere pagamenti attraverso buoni del docente.', 'wccd' ) . '</p>';
+			echo '<h3>' . esc_html( __( 'Crea il tuo certificato', 'wccdc' ) ) . '</h3>';
+			echo '<p class="description">' . esc_html__( 'Con questo ultimo passaggio, potrai iniziare a ricevere pagamenti attraverso buoni Carta della Cultura.', 'wccdc' ) . '</p>';
 
-			echo '<form name="wccd-generate-certificate" class="wccd-generate-certificate one-of" method="post" enctype="multipart/form-data" action="">';
-				echo '<table class="form-table wccd-table">';
+			echo '<form name="wccdc-generate-certificate" class="wccdc-generate-certificate one-of" method="post" enctype="multipart/form-data" action="">';
+				echo '<table class="form-table wccdc-table">';
 
 					/*Carica certificato*/
 					echo '<tr>';
-						echo '<th scope="row">' . esc_html__( 'Genera certificato', 'wccd' ) . '</th>';
+						echo '<th scope="row">' . esc_html__( 'Genera certificato', 'wccdc' ) . '</th>';
 						echo '<td>';
 
-							echo '<input type="file" accept=".cer" name="wccd-cert" class="wccd-cert">';
-							echo '<p class="description">' . esc_html__( 'Carica il file .cer ottenuto da Carta del docente per procedere', 'wccd' ) . '</p>';
+							echo '<input type="file" accept=".cer" name="wccdc-cert" class="wccdc-cert">';
+							echo '<p class="description">' . esc_html__( 'Carica il file .cer ottenuto da Carta della Cultura per procedere', 'wccdc' ) . '</p>';
 
-							wp_nonce_field( 'wccd-generate-certificate', 'wccd-gen-certificate-nonce' );
+							wp_nonce_field( 'wccdc-generate-certificate', 'wccdc-gen-certificate-nonce' );
 
-							echo '<input type="hidden" name="wccd-gen-certificate-hidden" value="1">';
-							echo '<input type="submit" class="button-primary wccd-button" value="' . esc_html__( 'Genera certificato', 'wccd' ) . '">';
+							echo '<input type="hidden" name="wccdc-gen-certificate-hidden" value="1">';
+							echo '<input type="submit" class="button-primary wccdc-button" value="' . esc_html__( 'Genera certificato', 'wccdc' ) . '">';
 
 						echo '</td>';
 					echo '</tr>';
@@ -571,26 +571,26 @@ class WCCD_Admin {
 				echo '</div>';
 
 				/*Modalità Sandbox*/
-				echo '<div id="wccd-sandbox-option" class="wccd-admin" style="display: block;">';
-					echo '<h3>' . esc_html__( 'Modalità Sandbox', 'wccd' ) . '</h3>';
+				echo '<div id="wccdc-sandbox-option" class="wccdc-admin" style="display: block;">';
+					echo '<h3>' . esc_html__( 'Modalità Sandbox', 'wccdc' ) . '</h3>';
 				echo '<p class="description">';
 					/* Translators: the email address */
-					printf( wp_kses_post( __( 'Attiva questa funzionalità per testare buoni Carta del Docente in un ambiente di prova.<br>Richiedi i buoni test scrivendo a <a href="%s">docenti@sogei.it</a>', 'wccd' ) ), 'mailto:docenti@sogei.it' );
+					printf( wp_kses_post( __( 'Attiva questa funzionalità per testare buoni Carta del Docente in un ambiente di prova.<br>Richiedi i buoni test scrivendo a <a href="%s">docenti@sogei.it</a>', 'wccdc' ) ), 'mailto:docenti@sogei.it' );
 				echo '</p>';
 
-					echo '<form name="wccd-sandbox" class="wccd-sandbox" method="post" enctype="multipart/form-data" action="">';
-						echo '<table class="form-table wccd-table">';
+					echo '<form name="wccdc-sandbox" class="wccdc-sandbox" method="post" enctype="multipart/form-data" action="">';
+						echo '<table class="form-table wccdc-table">';
 
 							/*Carica certificato*/
 							echo '<tr>';
-								echo '<th scope="row">' . esc_html__( 'Sandbox', 'wccd' ) . '</th>';
-								echo '<td class="wccd-sandbox-field">';
-									echo '<input type="checkbox" name="wccd-sandbox" class="wccd-sandbox"' . ( $this->sandbox ? ' checked="checked"' : null ) . '>';
-									echo '<p class="description">' . esc_html__( 'Attiva modalità Sandbox', 'wccd' ) . '</p>';
+								echo '<th scope="row">' . esc_html__( 'Sandbox', 'wccdc' ) . '</th>';
+								echo '<td class="wccdc-sandbox-field">';
+									echo '<input type="checkbox" name="wccdc-sandbox" class="wccdc-sandbox"' . ( $this->sandbox ? ' checked="checked"' : null ) . '>';
+									echo '<p class="description">' . esc_html__( 'Attiva modalità Sandbox', 'wccdc' ) . '</p>';
 
-									wp_nonce_field( 'wccd-sandbox', 'wccd-sandbox-nonce' );
+									wp_nonce_field( 'wccdc-sandbox', 'wccdc-sandbox-nonce' );
 
-									echo '<input type="hidden" name="wccd-sandbox-hidden" value="1">';
+									echo '<input type="hidden" name="wccdc-sandbox-hidden" value="1">';
 
 								echo '</td>';
 							echo '</tr>';
@@ -600,13 +600,13 @@ class WCCD_Admin {
 				echo '</div>';
 
 				/*Options*/
-				echo '<div id="wccd-options" class="wccd-admin">';
+				echo '<div id="wccdc-options" class="wccdc-admin">';
 
-					echo '<form name="wccd-options" class="wccd-form wccd-options" method="post" enctype="multipart/form-data" action="">';
+					echo '<form name="wccdc-options" class="wccdc-form wccdc-options" method="post" enctype="multipart/form-data" action="">';
 						echo '<table class="form-table">';
 
 							echo '<tr>';
-								echo '<th scope="row">' . esc_html__( 'Categorie', 'wccd' ) . '</th>';
+								echo '<th scope="row">' . esc_html__( 'Categorie', 'wccdc' ) . '</th>';
 								echo '<td>';
 
 									echo '<ul  class="categories-container">';
@@ -625,104 +625,104 @@ class WCCD_Admin {
 		}
 
 									echo '</ul>';
-									echo '<input type="hidden" name="wccd-tot-cats" class="wccd-tot-cats" value="' . ( is_array( $categories ) ? esc_attr( count( $categories ) ) : 1 ) . '">';
-									echo '<p class="description">' . esc_html__( 'Seleziona le categorie di prodotti corrispondenti ai beni acquistabili.', 'wccd' ) . '</p>';
+									echo '<input type="hidden" name="wccdc-tot-cats" class="wccdc-tot-cats" value="' . ( is_array( $categories ) ? esc_attr( count( $categories ) ) : 1 ) . '">';
+									echo '<p class="description">' . esc_html__( 'Seleziona le categorie di prodotti corrispondenti ai beni acquistabili.', 'wccdc' ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
 							echo '<tr>';
-								echo '<th scope="row">' . esc_html__( 'Utilizzo immagine', 'wccd' ) . '</th>';
+								echo '<th scope="row">' . esc_html__( 'Utilizzo immagine', 'wccdc' ) . '</th>';
 								echo '<td>';
-									echo '<input type="checkbox" name="wccd-image" value="1"' . ( 1 === intval( $wccd_image ) ? ' checked="checked"' : '' ) . '>';
-									echo '<p class="description">' . wp_kses_post( __( 'Mostra il logo <i>Carta del Docente</i> nella pagine di checkout.', 'wccd' ) ) . '</p>';
+									echo '<input type="checkbox" name="wccdc-image" value="1"' . ( 1 === intval( $wccdc_image ) ? ' checked="checked"' : '' ) . '>';
+									echo '<p class="description">' . wp_kses_post( __( 'Mostra il logo <i>Carta del Docente</i> nella pagine di checkout.', 'wccdc' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
 							echo '<tr>';
-								echo '<th scope="row">' . esc_html__( 'Controllo prodotti', 'wccd' ) . '</th>';
+								echo '<th scope="row">' . esc_html__( 'Controllo prodotti', 'wccdc' ) . '</th>';
 								echo '<td>';
-										echo '<input type="checkbox" name="wccd-items-check" value="1"' . ( 1 === intval( $wccd_items_check ) ? ' checked="checked"' : '' ) . '>';
-									echo '<p class="description">' . wp_kses_post( __( 'Mostra il metodo di pagamento solo se il/ i prodotti a carrello sono acquistabili con buoni <i>Carta del Docente</i>.<br>Più prodotti dovranno prevedere l\'uso di buoni dello stesso ambito di utilizzo.', 'wccd' ) ) . '</p>';
+										echo '<input type="checkbox" name="wccdc-items-check" value="1"' . ( 1 === intval( $wccdc_items_check ) ? ' checked="checked"' : '' ) . '>';
+									echo '<p class="description">' . wp_kses_post( __( 'Mostra il metodo di pagamento solo se il/ i prodotti a carrello sono acquistabili con buoni <i>Carta del Docente</i>.<br>Più prodotti dovranno prevedere l\'uso di buoni dello stesso ambito di utilizzo.', 'wccdc' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
-							echo '<tr class="wccd-orders-on-hold">';
-								echo '<th scope="row">' . esc_html__( 'Ordini in sospeso', 'wccd' ) . '</th>';
+							echo '<tr class="wccdc-orders-on-hold">';
+								echo '<th scope="row">' . esc_html__( 'Ordini in sospeso', 'wccdc' ) . '</th>';
 								echo '<td>';
-										echo '<input type="checkbox" name="wccd-orders-on-hold" value="1"' . ( 1 === intval( $wccd_orders_on_hold ) ? ' checked="checked"' : '' ) . '>';
-									echo '<p class="description">' . wp_kses_post( __( 'I buoni Carta del Docente verranno validati con il completamento manuale degli ordini.', 'wccd' ) ) . '</p>';
+										echo '<input type="checkbox" name="wccdc-orders-on-hold" value="1"' . ( 1 === intval( $wccdc_orders_on_hold ) ? ' checked="checked"' : '' ) . '>';
+									echo '<p class="description">' . wp_kses_post( __( 'I buoni Carta del Docente verranno validati con il completamento manuale degli ordini.', 'wccdc' ) ) . '</p>';
 								echo '</td>';
-							echo '<tr class="wccd-exclude-shipping">';
-								echo '<th scope="row">' . esc_html__( 'Spese di spedizione', 'wccd' ) . '</th>';
+							echo '<tr class="wccdc-exclude-shipping">';
+								echo '<th scope="row">' . esc_html__( 'Spese di spedizione', 'wccdc' ) . '</th>';
 								echo '<td>';
-										echo '<input type="checkbox" name="wccd-exclude-shipping" value="1"' . ( 1 === intval( $wccd_exclude_shipping ) ? ' checked="checked"' : '' ) . '>';
-									echo '<p class="description">' . wp_kses_post( __( 'Escludi le spese di spedizione dal pagamento con Carta del Docente.', 'wccd' ) ) . '</p>';
-								echo '</td>';
-							echo '</tr>';
-
-							echo '<tr class="wccd-coupon">';
-								echo '<th scope="row">' . esc_html__( 'Conversione in coupon', 'wccd' ) . '</th>';
-								echo '<td>';
-									echo '<input type="checkbox" name="wccd-coupon" value="1"' . ( 1 === intval( $wccd_coupon ) ? ' checked="checked"' : '' ) . '>';
-									echo '<p class="description">' . wp_kses_post( __( 'Nel caso in cui il buono <i>Carta del Docente</i> inserito sia inferiore al totale a carrello, viene convertito in <i>Codice promozionale</i> ed applicato all\'ordine.', 'wccd' ) ) . '</p>';
+										echo '<input type="checkbox" name="wccdc-exclude-shipping" value="1"' . ( 1 === intval( $wccdc_exclude_shipping ) ? ' checked="checked"' : '' ) . '>';
+									echo '<p class="description">' . wp_kses_post( __( 'Escludi le spese di spedizione dal pagamento con Carta del Docente.', 'wccdc' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
-							echo '<tr class="wccd-email-order-received wccd-email-details">';
-								echo '<th scope="row">' . esc_html__( 'Ordine ricevuto', 'wccd' ) . '</th>';
+							echo '<tr class="wccdc-coupon">';
+								echo '<th scope="row">' . esc_html__( 'Conversione in coupon', 'wccdc' ) . '</th>';
 								echo '<td>';
-									$default_order_received_message = __( 'L\'ordine verrà completato manualmente nei prossimi giorni e, contestualmente, verrà validato il buono Carta del Docente inserito. Riceverai una notifica email di conferma, grazie!', 'wccd' );
-									echo '<textarea cols="6" rows="6" class="regular-text" name="wccd-email-order-received" placeholder="' . esc_html( $default_order_received_message ) . '" value="' . esc_html( $wccd_email_order_received ) . '">' . esc_html( $wccd_email_order_received ) . '</textarea>';
+									echo '<input type="checkbox" name="wccdc-coupon" value="1"' . ( 1 === intval( $wccdc_coupon ) ? ' checked="checked"' : '' ) . '>';
+									echo '<p class="description">' . wp_kses_post( __( 'Nel caso in cui il buono <i>Carta del Docente</i> inserito sia inferiore al totale a carrello, viene convertito in <i>Codice promozionale</i> ed applicato all\'ordine.', 'wccdc' ) ) . '</p>';
+								echo '</td>';
+							echo '</tr>';
+
+							echo '<tr class="wccdc-email-order-received wccdc-email-details">';
+								echo '<th scope="row">' . esc_html__( 'Ordine ricevuto', 'wccdc' ) . '</th>';
+								echo '<td>';
+									$default_order_received_message = __( 'L\'ordine verrà completato manualmente nei prossimi giorni e, contestualmente, verrà validato il buono Carta del Docente inserito. Riceverai una notifica email di conferma, grazie!', 'wccdc' );
+									echo '<textarea cols="6" rows="6" class="regular-text" name="wccdc-email-order-received" placeholder="' . esc_html( $default_order_received_message ) . '" value="' . esc_html( $wccdc_email_order_received ) . '">' . esc_html( $wccdc_email_order_received ) . '</textarea>';
 									echo '<p class="description">';
-										echo wp_kses_post( __( 'Messaggio della mail inviata all\'utente al ricevimento dell\'ordine.', 'wccd' ) );
+										echo wp_kses_post( __( 'Messaggio della mail inviata all\'utente al ricevimento dell\'ordine.', 'wccdc' ) );
 									echo '</p>';
-									echo '<div class="wccd-divider"></div>';
+									echo '<div class="wccdc-divider"></div>';
 								echo '</td>';
 							echo '</tr>';
 
-							echo '<tr class="wccd-email-subject wccd-email-details">';
-								echo '<th scope="row">' . esc_html__( 'Oggetto email', 'wccd' ) . '</th>';
+							echo '<tr class="wccdc-email-subject wccdc-email-details">';
+								echo '<th scope="row">' . esc_html__( 'Oggetto email', 'wccdc' ) . '</th>';
 								echo '<td>';
-										echo '<input type="text" class="regular-text" name="wccd-email-subject" placeholder="' . esc_attr__( 'Ordine fallito', 'wccd' ) . '" value="' . esc_attr( $wccd_email_subject ) . '">';
-									echo '<p class="description">' . wp_kses_post( __( 'Oggetto della mail inviata all\'utente nel caso in cui la validazione del buono non sia andata a buon fine.', 'wccd' ) ) . '</p>';
+										echo '<input type="text" class="regular-text" name="wccdc-email-subject" placeholder="' . esc_attr__( 'Ordine fallito', 'wccdc' ) . '" value="' . esc_attr( $wccdc_email_subject ) . '">';
+									echo '<p class="description">' . wp_kses_post( __( 'Oggetto della mail inviata all\'utente nel caso in cui la validazione del buono non sia andata a buon fine.', 'wccdc' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
-							echo '<tr class="wccd-email-heading wccd-email-details">';
-								echo '<th scope="row">' . esc_html__( 'Intestazione email', 'wccd' ) . '</th>';
+							echo '<tr class="wccdc-email-heading wccdc-email-details">';
+								echo '<th scope="row">' . esc_html__( 'Intestazione email', 'wccdc' ) . '</th>';
 								echo '<td>';
-										echo '<input type="text" class="regular-text" name="wccd-email-heading" placeholder="' . esc_attr__( 'Ordine fallito', 'wccd' ) . '" value="' . esc_attr( $wccd_email_heading ) . '">';
-									echo '<p class="description">' . wp_kses_post( __( 'Intestazione della mail inviata all\'utente nel caso in cui la validazione del buono non sia andata a buon fine.', 'wccd' ) ) . '</p>';
+										echo '<input type="text" class="regular-text" name="wccdc-email-heading" placeholder="' . esc_attr__( 'Ordine fallito', 'wccdc' ) . '" value="' . esc_attr( $wccdc_email_heading ) . '">';
+									echo '<p class="description">' . wp_kses_post( __( 'Intestazione della mail inviata all\'utente nel caso in cui la validazione del buono non sia andata a buon fine.', 'wccdc' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
-							echo '<tr class="wccd-email-order-failed wccd-email-details">';
-								echo '<th scope="row">' . esc_html__( 'Ordine fallito', 'wccd' ) . '</th>';
+							echo '<tr class="wccdc-email-order-failed wccdc-email-details">';
+								echo '<th scope="row">' . esc_html__( 'Ordine fallito', 'wccdc' ) . '</th>';
 								echo '<td>';
 										$default_order_failed_message = __( 'La validazone del buono Carta del Docente ha restituito un errore e non è stato possibile completare l\'ordine, effettua il pagamento a <a href="[checkout-url]">questo indirizzo</a>.' );
-										echo '<textarea cols="6" rows="6" class="regular-text" name="wccd-email-order-failed" placeholder="' . esc_html( $default_order_failed_message ) . '" value="' . esc_html( $wccd_email_order_failed ) . '">' . esc_html( $wccd_email_order_failed ) . '</textarea>';
+										echo '<textarea cols="6" rows="6" class="regular-text" name="wccdc-email-order-failed" placeholder="' . esc_html( $default_order_failed_message ) . '" value="' . esc_html( $wccdc_email_order_failed ) . '">' . esc_html( $wccdc_email_order_failed ) . '</textarea>';
 										echo '<p class="description">';
 											echo '<span class="shortcodes">';
 												echo '<code>[checkout-url]</code>';
 											echo '</span>';
-											echo wp_kses_post( __( 'Messaggio della mail inviata all\'utente nel caso in cui la validazione del buono non sia andata a buon fine.', 'wccd' ) );
+											echo wp_kses_post( __( 'Messaggio della mail inviata all\'utente nel caso in cui la validazione del buono non sia andata a buon fine.', 'wccdc' ) );
 										echo '</p>';
 								echo '</td>';
 							echo '</tr>';
 
 						echo '</table>';
 
-						wp_nonce_field( 'wccd-save-settings', 'wccd-settings-nonce' );
+						wp_nonce_field( 'wccdc-save-settings', 'wccdc-settings-nonce' );
 
-						echo '<input type="hidden" name="wccd-settings-hidden" value="1">';
-						echo '<input type="submit" class="button-primary" value="' . esc_html__( 'Salva impostazioni', 'wccd' ) . '">';
+						echo '<input type="hidden" name="wccdc-settings-hidden" value="1">';
+						echo '<input type="submit" class="button-primary" value="' . esc_html__( 'Salva impostazioni', 'wccdc' ) . '">';
 					echo '</form>';
 				echo '</div>';
 
 			echo '</div>';
 
 			echo '<div class="wrap-right">';
-				echo '<iframe width="300" height="1300" scrolling="no" src="http://www.ilghera.com/images/wccd-premium-iframe.html"></iframe>';
+				echo '<iframe width="300" height="1300" scrolling="no" src="http://www.ilghera.com/images/wccdc-premium-iframe.html"></iframe>';
 			echo '</div>';
 			echo '<div class="clear"></div>';
 
@@ -739,7 +739,7 @@ class WCCD_Admin {
 
 		?>
 		<div class="notice notice-error">
-			<p><?php esc_html_e( 'ATTENZIONE! Il file caricato non sembra essere un certificato valido.', 'wccd' ); ?></p>
+			<p><?php esc_html_e( 'ATTENZIONE! Il file caricato non sembra essere un certificato valido.', 'wccdc' ); ?></p>
 		</div>
 		<?php
 
@@ -750,33 +750,33 @@ class WCCD_Admin {
 	 *
 	 * @return void
 	 */
-	public function wccd_save_settings() {
+	public function wccdc_save_settings() {
 
-		if ( isset( $_POST['premium-key-sent'], $_POST['wccd-premium-key-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccd-premium-key-nonce'] ) ), 'wccd-premium-key' ) ) {
+		if ( isset( $_POST['premium-key-sent'], $_POST['wccdc-premium-key-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccdc-premium-key-nonce'] ) ), 'wccdc-premium-key' ) ) {
 
 			/*Salvataggio Premium Key*/
-			$premium_key = isset( $_POST['wccd-premium-key'] ) ? sanitize_text_field( wp_unslash( $_POST['wccd-premium-key'] ) ) : '';
+			$premium_key = isset( $_POST['wccdc-premium-key'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-premium-key'] ) ) : '';
 
-			update_option( 'wccd-premium-key', $premium_key );
+			update_option( 'wccdc-premium-key', $premium_key );
 
 		}
 
-		if ( isset( $_POST['wccd-gen-certificate-hidden'], $_POST['wccd-gen-certificate-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccd-gen-certificate-nonce'] ) ), 'wccd-generate-certificate' ) ) {
+		if ( isset( $_POST['wccdc-gen-certificate-hidden'], $_POST['wccdc-gen-certificate-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccdc-gen-certificate-nonce'] ) ), 'wccdc-generate-certificate' ) ) {
 
 			/*Salvataggio file .cer*/
-			if ( isset( $_FILES['wccd-cert']['name'] ) ) {
+			if ( isset( $_FILES['wccdc-cert']['name'] ) ) {
 
-				$file_name = sanitize_text_field( wp_unslash( $_FILES['wccd-cert']['name'] ) );
-				$info      = isset( $_FILES['wccd-cert']['name'] ) ? pathinfo( $file_name ) : null;
+				$file_name = sanitize_text_field( wp_unslash( $_FILES['wccdc-cert']['name'] ) );
+				$info      = isset( $_FILES['wccdc-cert']['name'] ) ? pathinfo( $file_name ) : null;
 				$name      = isset( $info['basename'] ) ? sanitize_file_name( $info['basename'] ) : null;
 
 				if ( $info ) {
 
 					if ( 'cer' === $info['extension'] ) {
 
-						if ( isset( $_FILES['wccd-cert']['tmp_name'] ) ) {
+						if ( isset( $_FILES['wccdc-cert']['tmp_name'] ) ) {
 
-							$tmp_name = sanitize_text_field( wp_unslash( $_FILES['wccd-cert']['tmp_name'] ) );
+							$tmp_name = sanitize_text_field( wp_unslash( $_FILES['wccdc-cert']['tmp_name'] ) );
 							move_uploaded_file( $tmp_name, WCCD_PRIVATE . $name );
 
 						}
@@ -787,25 +787,25 @@ class WCCD_Admin {
 						$certificate_ca_pem_content = '-----BEGIN CERTIFICATE-----' . PHP_EOL
 							. chunk_split( base64_encode( $certificate_ca_cer_content ), 64, PHP_EOL )
 							. '-----END CERTIFICATE-----' . PHP_EOL;
-						$certificate_ca_pem         = WCCD_PRIVATE . 'files/wccd-cert.pem';
+						$certificate_ca_pem         = WCCD_PRIVATE . 'files/wccdc-cert.pem';
 						file_put_contents( $certificate_ca_pem, $certificate_ca_pem_content );
 
 						/*Preparo i file necessari*/
-						$pem     = openssl_x509_read( file_get_contents( WCCD_PRIVATE . 'files/wccd-cert.pem' ) );
+						$pem     = openssl_x509_read( file_get_contents( WCCD_PRIVATE . 'files/wccdc-cert.pem' ) );
 						$get_key = file_get_contents( WCCD_PRIVATE . 'files/key.der' );
 
 						/*Richiamo la passphrase dal db*/
-						$wccd_password = base64_decode( get_option( 'wccd-password' ) );
+						$wccdc_password = base64_decode( get_option( 'wccdc-password' ) );
 
-						$key = array( $get_key, $wccd_password );
+						$key = array( $get_key, $wccdc_password );
 
-						openssl_pkcs12_export_to_file( $pem, WCCD_PRIVATE . 'files/wccd-cert.p12', $key, $wccd_password );
+						openssl_pkcs12_export_to_file( $pem, WCCD_PRIVATE . 'files/wccdc-cert.p12', $key, $wccdc_password );
 
 						/*Preparo i file necessari*/
-						openssl_pkcs12_read( file_get_contents( WCCD_PRIVATE . 'files/wccd-cert.p12' ), $p12, $wccd_password );
+						openssl_pkcs12_read( file_get_contents( WCCD_PRIVATE . 'files/wccdc-cert.p12' ), $p12, $wccdc_password );
 
 						/*Creo il certificato*/
-						file_put_contents( WCCD_PRIVATE . 'wccd-certificate.pem', $p12['cert'] . $key[0] );
+						file_put_contents( WCCD_PRIVATE . 'wccdc-certificate.pem', $p12['cert'] . $key[0] );
 
 					} else {
 						add_action( 'admin_notices', array( $this, 'not_valid_certificate' ) );
@@ -814,21 +814,21 @@ class WCCD_Admin {
 			}
 		}
 
-		if ( isset( $_POST['wccd-certificate-hidden'], $_POST['wccd-certificate-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccd-certificate-nonce'] ) ), 'wccd-upload-certificate' ) ) {
+		if ( isset( $_POST['wccdc-certificate-hidden'], $_POST['wccdc-certificate-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccdc-certificate-nonce'] ) ), 'wccdc-upload-certificate' ) ) {
 
 			/*Carica certificato*/
-			if ( isset( $_FILES['wccd-certificate'] ) ) {
+			if ( isset( $_FILES['wccdc-certificate'] ) ) {
 
-				$info = isset( $_FILES['wccd-certificate']['name'] ) ? pathinfo( sanitize_text_field( wp_unslash( $_FILES['wccd-certificate']['name'] ) ) ) : null;
+				$info = isset( $_FILES['wccdc-certificate']['name'] ) ? pathinfo( sanitize_text_field( wp_unslash( $_FILES['wccdc-certificate']['name'] ) ) ) : null;
 				$name = isset( $info['basename'] ) ? sanitize_file_name( $info['basename'] ) : null;
 
 				if ( $info ) {
 
 					if ( 'pem' === $info['extension'] ) {
 
-						if ( isset( $_FILES['wccd-certificate']['tmp_name'] ) ) {
+						if ( isset( $_FILES['wccdc-certificate']['tmp_name'] ) ) {
 
-							$tmp_name = sanitize_text_field( wp_unslash( $_FILES['wccd-certificate']['tmp_name'] ) );
+							$tmp_name = sanitize_text_field( wp_unslash( $_FILES['wccdc-certificate']['tmp_name'] ) );
 							move_uploaded_file( $tmp_name, WCCD_PRIVATE . $name );
 
 						}
@@ -841,76 +841,76 @@ class WCCD_Admin {
 			}
 
 			/*Password*/
-			$wccd_password = isset( $_POST['wccd-password'] ) ? sanitize_text_field( wp_unslash( $_POST['wccd-password'] ) ) : '';
+			$wccdc_password = isset( $_POST['wccdc-password'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-password'] ) ) : '';
 
 			/*Salvo passw nel db*/
-			if ( $wccd_password ) {
+			if ( $wccdc_password ) {
 
-				update_option( 'wccd-password', base64_encode( $wccd_password ) );
+				update_option( 'wccdc-password', base64_encode( $wccdc_password ) );
 
 			}
 		}
 
-		if ( isset( $_POST['wccd-settings-hidden'], $_POST['wccd-settings-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccd-settings-nonce'] ) ), 'wccd-save-settings' ) ) {
+		if ( isset( $_POST['wccdc-settings-hidden'], $_POST['wccdc-settings-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccdc-settings-nonce'] ) ), 'wccdc-save-settings' ) ) {
 
 			/*Impostazioni categorie per il controllo in fase di checkout*/
-			if ( isset( $_POST['wccd-tot-cats'] ) ) {
+			if ( isset( $_POST['wccdc-tot-cats'] ) ) {
 
-				$tot = sanitize_text_field( wp_unslash( $_POST['wccd-tot-cats'] ) );
+				$tot = sanitize_text_field( wp_unslash( $_POST['wccdc-tot-cats'] ) );
 				$tot = $tot ? $tot : 1;
 
-				$wccd_categories = array();
+				$wccdc_categories = array();
 
 				for ( $i = 1; $i <= $tot; $i++ ) {
 
-					$bene = isset( $_POST[ 'wccd-beni-' . $i ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'wccd-beni-' . $i ] ) ) : '';
-					$cat  = isset( $_POST[ 'wccd-categories-' . $i ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'wccd-categories-' . $i ] ) ) : '';
+					$bene = isset( $_POST[ 'wccdc-beni-' . $i ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'wccdc-beni-' . $i ] ) ) : '';
+					$cat  = isset( $_POST[ 'wccdc-categories-' . $i ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'wccdc-categories-' . $i ] ) ) : '';
 
 					if ( $bene && $cat ) {
 
-						$wccd_categories[] = array( $bene => $cat );
+						$wccdc_categories[] = array( $bene => $cat );
 
 					}
 				}
 
-				update_option( 'wccd-categories', $wccd_categories );
+				update_option( 'wccdc-categories', $wccdc_categories );
 			}
 
 			/*Conversione in coupon*/
-			$wccd_coupon = isset( $_POST['wccd-coupon'] ) ? sanitize_text_field( wp_unslash( $_POST['wccd-coupon'] ) ) : '';
-			update_option( 'wccd-coupon', $wccd_coupon );
+			$wccdc_coupon = isset( $_POST['wccdc-coupon'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-coupon'] ) ) : '';
+			update_option( 'wccdc-coupon', $wccdc_coupon );
 
 			/*Immagine in pagina di checkout*/
-			$wccd_image = isset( $_POST['wccd-image'] ) ? sanitize_text_field( wp_unslash( $_POST['wccd-image'] ) ) : '';
-			update_option( 'wccd-image', $wccd_image );
+			$wccdc_image = isset( $_POST['wccdc-image'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-image'] ) ) : '';
+			update_option( 'wccdc-image', $wccdc_image );
 
 			/*Controllo prodotti a carrello*/
-			$wccd_items_check = isset( $_POST['wccd-items-check'] ) ? sanitize_text_field( wp_unslash( $_POST['wccd-items-check'] ) ) : '';
-			update_option( 'wccd-items-check', $wccd_items_check );
+			$wccdc_items_check = isset( $_POST['wccdc-items-check'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-items-check'] ) ) : '';
+			update_option( 'wccdc-items-check', $wccdc_items_check );
 
 			/*Ordini in sospeso*/
-			$wccd_orders_on_hold = isset( $_POST['wccd-orders-on-hold'] ) ? sanitize_text_field( wp_unslash( $_POST['wccd-orders-on-hold'] ) ) : '';
-			update_option( 'wccd-orders-on-hold', $wccd_orders_on_hold );
+			$wccdc_orders_on_hold = isset( $_POST['wccdc-orders-on-hold'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-orders-on-hold'] ) ) : '';
+			update_option( 'wccdc-orders-on-hold', $wccdc_orders_on_hold );
 
 			/*Spese di spedizione*/
-			$wccd_exclude_shipping = isset( $_POST['wccd-exclude-shipping'] ) ? sanitize_text_field( wp_unslash( $_POST['wccd-exclude-shipping'] ) ) : '';
-			update_option( 'wccd-exclude-shipping', $wccd_exclude_shipping );
+			$wccdc_exclude_shipping = isset( $_POST['wccdc-exclude-shipping'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-exclude-shipping'] ) ) : '';
+			update_option( 'wccdc-exclude-shipping', $wccdc_exclude_shipping );
 
 			/*Messaggio email ordine ricevuto*/
-			$wccd_email_order_received = isset( $_POST['wccd-email-order-received'] ) ? wp_kses_post( wp_unslash( $_POST['wccd-email-order-received'] ) ) : '';
-			update_option( 'wccd-email-order-received', $wccd_email_order_received );
+			$wccdc_email_order_received = isset( $_POST['wccdc-email-order-received'] ) ? wp_kses_post( wp_unslash( $_POST['wccdc-email-order-received'] ) ) : '';
+			update_option( 'wccdc-email-order-received', $wccdc_email_order_received );
 
 			/*Oggetto email*/
-			$wccd_email_subject = isset( $_POST['wccd-email-subject'] ) ? sanitize_text_field( wp_unslash( $_POST['wccd-email-subject'] ) ) : '';
-			update_option( 'wccd-email-subject', $wccd_email_subject );
+			$wccdc_email_subject = isset( $_POST['wccdc-email-subject'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-email-subject'] ) ) : '';
+			update_option( 'wccdc-email-subject', $wccdc_email_subject );
 
 			/*Intestazione email*/
-			$wccd_email_heading = isset( $_POST['wccd-email-heading'] ) ? sanitize_text_field( wp_unslash( $_POST['wccd-email-heading'] ) ) : '';
-			update_option( 'wccd-email-heading', $wccd_email_heading );
+			$wccdc_email_heading = isset( $_POST['wccdc-email-heading'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-email-heading'] ) ) : '';
+			update_option( 'wccdc-email-heading', $wccdc_email_heading );
 
 			/*Messaggio email ordine ricevuto*/
-			$wccd_email_order_failed = isset( $_POST['wccd-email-order-failed'] ) ? wp_kses_post( wp_unslash( $_POST['wccd-email-order-failed'] ) ) : '';
-			update_option( 'wccd-email-order-failed', $wccd_email_order_failed );
+			$wccdc_email_order_failed = isset( $_POST['wccdc-email-order-failed'] ) ? wp_kses_post( wp_unslash( $_POST['wccdc-email-order-failed'] ) ) : '';
+			update_option( 'wccdc-email-order-failed', $wccdc_email_order_failed );
 
 		}
 	}
