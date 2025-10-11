@@ -1,11 +1,11 @@
 /**
- * ilGhera Carta Docente for WC - js
+ * ilGhera Carta della Cultura for WC - js
  *
  * @author ilGhera
- * @package wc-carta-docente/js
+ * @package wc-carta-della-cultura/js
  * @version 1.1.0
  */
-var wccdController = function() {
+var wccdcController = function() {
 
 	var self = this;
 
@@ -26,13 +26,13 @@ var wccdController = function() {
             
             $('body').on('checkout_error', function() {
                 
-                if ( wccdOptions.couponConversion ) {
+                if ( wccdcOptions.couponConversion ) {
 
                     var data = {
                         'action': 'check-for-coupon'
                     }
 
-                    $.post(wccdOptions.ajaxURL, data, function(response) {
+                    $.post(wccdcOptions.ajaxURL, data, function(response) {
                         
                         if (response) {
 
@@ -56,7 +56,7 @@ var wccdController = function() {
  */
 jQuery(document).ready(function($) {
 	
-	var Controller = new wccdController;
+	var Controller = new wccdcController;
 	Controller.onLoad();
 
 });
