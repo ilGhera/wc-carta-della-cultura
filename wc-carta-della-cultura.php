@@ -52,7 +52,7 @@ function wccdc_premium_activation() {
 	}
 
 	/*Requires*/
-	require WCCDC_INCLUDES . 'class-wccdc-teacher-gateway.php';
+	require WCCDC_INCLUDES . 'class-wccdc-gateway.php';
 	require WCCDC_INCLUDES . 'class-wccdc-soap-client.php';
 	require WCCDC_INCLUDES . 'class-wccdc-admin.php';
 	require WCCDC_INCLUDES . 'class-wccdc.php';
