@@ -1,9 +1,9 @@
 <?php
 /**
- * Class WCCD
+ * Class WCCDC
  *
  * @author ilGhera
- * @package wc-carta-docente/includes
+ * @package wc-carta-della-cultura/includes
  *
  * @since 1.4.0
  */
@@ -11,11 +11,11 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * WCCD class
+ * WCCDC class
  *
  * @since 1.4.0
  */
-class WCCD {
+class WCCDC {
 
 	/**
 	 * Coupon option
@@ -31,7 +31,6 @@ class WCCD {
 	 */
 	public $orders_on_hold;
 
-
 	/**
 	 * The constructor
 	 *
@@ -39,15 +38,15 @@ class WCCD {
 	 */
 	public function __construct() {
 
-		$this->coupon_option  = get_option( 'wccd-coupon' );
-		$this->orders_on_hold = get_option( 'wccd-orders-on-hold' );
+		$this->coupon_option  = get_option( 'wccdc-coupon' );
+		$this->orders_on_hold = get_option( 'wccdc-orders-on-hold' );
 
 		/* Filters */
-		add_filter( 'woocommerce_payment_gateways', array( $this, 'wccd_add_teacher_gateway_class' ) );
+		add_filter( 'woocommerce_payment_gateways', array( $this, 'wccdc_add_teacher_gateway_class' ) );
 
 		/* Actions */
-		add_action( 'wp_ajax_check-for-coupon', array( $this, 'wccd_check_for_coupon' ) );
-		add_action( 'wp_ajax_nopriv_check-for-coupon', array( $this, 'wccd_check_for_coupon' ) );
+		add_action( 'wp_ajax_check-for-coupon', array( $this, 'wccdc_check_for_coupon' ) );
+		add_action( 'wp_ajax_nopriv_check-for-coupon', array( $this, 'wccdc_check_for_coupon' ) );
 		add_action( 'woocommerce_checkout_process', array( $this, 'process_coupon' ) );
 
 		if ( $this->orders_on_hold ) {
@@ -57,7 +56,6 @@ class WCCD {
 		}
 
 	}
-
 
 	/**
 	 * Restituisce i dati della sessione WC corrente
@@ -76,15 +74,14 @@ class WCCD {
 
 	}
 
-
 	/**
-	 * Verifica se in sessione è stato applicato un coupon derivante da un buono Carta del Docente
+	 * Verifica se in sessione è stato applicato un coupon derivante da un buono Carta della Cultura
 	 *
 	 * @param bool $return restituisce il codice del coupon se valorizzato.
 	 *
 	 * @return mixed
 	 */
-	public function wccd_coupon_applied( $return = false ) {
+	public function wccdc_coupon_applied( $return = false ) {
 
 		$output       = false;
 		$session_data = $this->get_session_data();
@@ -97,7 +94,7 @@ class WCCD {
 
 				foreach ( $coupons as $coupon ) {
 
-					if ( false !== strpos( $coupon, 'wccd' ) ) {
+					if ( false !== strpos( $coupon, 'wccdc' ) ) {
 
 						if ( $return ) {
 
@@ -120,20 +117,18 @@ class WCCD {
 
 	}
 
-
 	/**
-	 * Verifica di un coupon wccd in sessione al click di aquisto in pagina di checkout
+	 * Verifica di un coupon wccdc in sessione al click di aquisto in pagina di checkout
 	 *
 	 * @return void
 	 */
-	public function wccd_check_for_coupon() {
+	public function wccdc_check_for_coupon() {
 
-		echo esc_html( $this->wccd_coupon_applied() );
+		echo esc_html( $this->wccdc_coupon_applied() );
 
 		exit;
 
 	}
-
 
 	/**
 	 * Se presente un certificato, aggiunge il nuovo gateway a quelli disponibili in WooCommerce
@@ -142,16 +137,16 @@ class WCCD {
 	 *
 	 * @return array
 	 */
-	public function wccd_add_teacher_gateway_class( $methods ) {
+	public function wccdc_add_teacher_gateway_class( $methods ) {
 
-		$available = ( $this->coupon_option && $this->wccd_coupon_applied() ) ? false : true;
-		$sandbox   = get_option( 'wccd-sandbox' );
+		$available = ( $this->coupon_option && $this->wccdc_coupon_applied() ) ? false : true;
+		$sandbox   = get_option( 'wccdc-sandbox' );
 
 		if ( $available ) {
 
-			if ( $sandbox || ( wccd_admin::get_the_file( '.pem' ) && get_option( 'wccd-cert-activation' ) ) ) {
+			if ( $sandbox || ( wccdc_admin::get_the_file( '.pem' ) && get_option( 'wccdc-cert-activation' ) ) ) {
 
-				$methods[] = 'WCCD_Teacher_Gateway';
+				$methods[] = 'WCCDC_Teacher_Gateway';
 
 			}
 		}
@@ -160,9 +155,8 @@ class WCCD {
 
 	}
 
-
 	/**
-	 * Durante la creazione dell'ordine se presente un coupon wccd invia il buono a Carta del Docente
+	 * Durante la creazione dell'ordine se presente un coupon wccdc invia il buono a Carta della Cultura
 	 * L'ordine viene bloccato se il buono non risulta essere valido
 	 *
 	 * @return void
@@ -171,7 +165,7 @@ class WCCD {
 
 		if ( $this->coupon_option ) {
 
-			$coupon_code = $this->wccd_coupon_applied( true );
+			$coupon_code = $this->wccdc_coupon_applied( true );
 
 			if ( $coupon_code ) {
 
@@ -180,12 +174,12 @@ class WCCD {
 				$coupon_amount = $coupon->get_amount();
 				$teacher_code  = $coupon->get_description();
 
-				$notice = WCCD_Teacher_Gateway::process_code( $parts[1], $teacher_code, $coupon_amount, true );
+				$notice = WCCDC_Teacher_Gateway::process_code( $parts[1], $teacher_code, $coupon_amount, true );
 
 				if ( 1 !== intval( $notice ) ) {
 
 					/* Translators: Notifica all'utente nella pagina di checkout */
-					wc_add_notice( sprintf( __( 'Buono docente - %s', 'wccd' ), $notice ), 'error' );
+					wc_add_notice( sprintf( __( 'Buono Carta del Cultura - %s', 'wccdc' ), $notice ), 'error' );
 
 				} else {
 
@@ -198,7 +192,6 @@ class WCCD {
 
 	}
 
-
 	/**
 	 * Customer email for failed order
 	 *
@@ -210,9 +203,9 @@ class WCCD {
 	public function refused_code_customer_notification( $order_id, $order ) {
 
 		/* Get options */
-		$subject = get_option( 'wccd-email-subject' );
+		$subject = get_option( 'wccdc-email-subject' );
 		$subject = $subject ? $subject : __( 'Ordine fallito' );
-		$heading = get_option( 'wccd-email-heading' );
+		$heading = get_option( 'wccdc-email-heading' );
 		$heading = $heading ? $heading : __( 'Ordine fallito' );
 
 		/* Get WooCommerce email objects */
@@ -227,7 +220,6 @@ class WCCD {
 
 	}
 
-
 	/**
 	 * Process the code when completing the order manually
 	 *
@@ -241,11 +233,11 @@ class WCCD {
 
 		if ( is_object( $order ) && ! is_wp_error( $order ) ) {
 
-			if ( 'docente' === $order->get_payment_method() ) {
+			if ( 'carta-della-cultura' === $order->get_payment_method() ) {
 
-				$teacher_code = $order->get_meta( 'wc-codice-docente' );
+				$teacher_code = $order->get_meta( 'wc-codice-carta-dela-cultura' );
 				$total        = $order->get_total();
-				$validate     = WCCD_Teacher_Gateway::process_code( $order_id, $teacher_code, $total, false, true );
+				$validate     = WCCDC_Teacher_Gateway::process_code( $order_id, $teacher_code, $total, false, true );
 
 				if ( 1 !== intval( $validate ) ) {
 
@@ -270,5 +262,5 @@ class WCCD {
 
 }
 
-new WCCD();
+new WCCDC();
 
