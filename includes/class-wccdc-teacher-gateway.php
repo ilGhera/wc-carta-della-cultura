@@ -1,9 +1,9 @@
 <?php
 /**
- * Estende la classe WC_Payment_Gateway di WooCommerce aggiungendo il nuovo gateway "Carta del Docente".
+ * Estende la classe WC_Payment_Gateway di WooCommerce aggiungendo il nuovo gateway "Carta della Cultura".
  *
  * @author ilGhera
- * @package wc-carta-docente/includes
+ * @package wc-carta-della-cultura/includes
  *
  * @since 1.4.6
  */
@@ -11,11 +11,11 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * WCCD_Teacher_Gateway class
+ * WCCDC_Teacher_Gateway class
  *
  * @since 1.4.6
  */
-class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
+class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 	/**
 	 * Coupon option
@@ -48,19 +48,19 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 	 */
 	public function __construct() {
 
-		$this->plugin_id          = 'woocommerce_carta_docente';
-		$this->id                 = 'docente';
+		$this->plugin_id          = 'woocommerce_carta_della_cultura';
+		$this->id                 = 'carta-della-cultura';
 		$this->has_fields         = true;
-		$this->method_title       = 'Carta del Docente';
+		$this->method_title       = 'Carta della Cultura';
 		$this->method_description = 'Consente ai docenti di utilizzare il buono a loro riservato per l\'acquisto di materiale didattico.';
 
-		self::$coupon_option    = get_option( 'wccd-coupon' );
-		self::$orders_on_hold   = get_option( 'wccd-orders-on-hold' );
-		self::$exclude_shipping = get_option( 'wccd-exclude-shipping' );
+		self::$coupon_option    = get_option( 'wccdc-coupon' );
+		self::$orders_on_hold   = get_option( 'wccdc-orders-on-hold' );
+		self::$exclude_shipping = get_option( 'wccdc-exclude-shipping' );
 
-		if ( get_option( 'wccd-image' ) ) {
+		if ( get_option( 'wccdc-image' ) ) {
 
-			$this->icon = WCCD_URI . 'images/carta-docente.png';
+			$this->icon = WCCDC_URI . 'images/carta-della-cultura.png';
 
 		}
 
@@ -94,7 +94,7 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 	 */
 	public function unset_teacher_gateway( $available_gateways ) {
 
-		if ( is_admin() || ! is_checkout() || ! get_option( 'wccd-items-check' ) ) {
+		if ( is_admin() || ! is_checkout() || ! get_option( 'wccdc-items-check' ) ) {
 
 			return $available_gateways;
 
@@ -102,7 +102,7 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 
 		$unset      = false;
 		$cat_ids    = array();
-		$categories = get_option( 'wccd-categories' );
+		$categories = get_option( 'wccdc-categories' );
 		$cats       = array();
 
 		if ( empty( $categories ) ) {
@@ -131,7 +131,7 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 		}
 
 		/**
-		 * Questo array conterrà tutti gli ambiti Carta Docente richiesti
+		 * Questo array conterrà tutti gli ambiti Carta della Cultura richiesti
 		 * da ciascun prodotto nel carrello. Ogni elemento sarà un array di stringhe (gli ambiti).
 		 * Esempio: [ ['libri-e-testi'], ['hardware', 'software'] ]
 		 */
@@ -198,10 +198,10 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 			}
 		}
 
-		/* Se $unset è true, rimuovi il gateway "docente". */
+		/* Se $unset è true, rimuovi il gateway "carta-della-cultura". */
 		if ( $unset ) {
 
-			unset( $available_gateways['docente'] );
+			unset( $available_gateways['carta-della-cultura'] );
 		}
 
 		return $available_gateways;
@@ -218,14 +218,14 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 				'enabled'     => array(
 					'title'   => __( 'Enable/Disable', 'woocommerce' ),
 					'type'    => 'checkbox',
-					'label'   => __( 'Abilita pagamento con Carta del Docente', 'wccd' ),
+					'label'   => __( 'Abilita pagamento con Carta della Cultura', 'wccdc' ),
 					'default' => 'yes',
 				),
 				'title'       => array(
 					'title'       => __( 'Title', 'woocommerce' ),
 					'type'        => 'text',
-					'description' => __( 'This controls the title which the user sees during checkout.', 'wccd' ),
-					'default'     => __( 'Carta del Docente', 'wccd' ),
+					'description' => __( 'This controls the title which the user sees during checkout.', 'wccdc' ),
+					'default'     => __( 'Carta della Cultura', 'wccdc' ),
 					'desc_tip'    => true,
 				),
 				'description' => array(
@@ -246,11 +246,11 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 		?>
 		<p>
 			<?php echo wp_kses_post( $this->description ); ?>
-			<label for="wc-codice-docente">
-				<?php esc_html_e( 'Inserisci qui il tuo codice', 'wccd' ); ?>
+			<label for="wc-codice-carta-della-cultura">
+				<?php esc_html_e( 'Inserisci qui il tuo codice', 'wccdc' ); ?>
 				<span class="required">*</span>
 			</label>
-			<input type="text" class="wc-codice-docente" id="wc-codice-docente" name="wc-codice-docente" />
+			<input type="text" class="wc-codice-carta-della-cultura" id="wc-codice-carta-della-cultura" name="wc-codice-carta-della-cultura" />
 		</p>
 		<?php
 	}
@@ -266,21 +266,21 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 	 */
 	public static function get_purchasable_cats( $purchasable, $categories = null ) {
 
-		$wccd_categories = is_array( $categories ) ? $categories : get_option( 'wccd-categories' );
+		$wccdc_categories = is_array( $categories ) ? $categories : get_option( 'wccdc-categories' );
 
-		if ( $wccd_categories ) {
+		if ( $wccdc_categories ) {
 
 			$purchasable      = str_replace( '(', '', $purchasable );
 			$purchasable      = str_replace( ')', '', $purchasable );
 			$bene             = strtolower( str_replace( ' ', '-', $purchasable ) );
 			$output           = array();
-			$count_categories = count( $wccd_categories );
+			$count_categories = count( $wccdc_categories );
 
 			for ( $i = 0; $i < $count_categories; $i++ ) {
 
-				if ( array_key_exists( $bene, $wccd_categories[ $i ] ) ) {
+				if ( array_key_exists( $bene, $wccdc_categories[ $i ] ) ) {
 
-					$output[] = $wccd_categories[ $i ][ $bene ];
+					$output[] = $wccdc_categories[ $i ][ $bene ];
 
 				}
 			}
@@ -293,7 +293,7 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 
 
 	/**
-	 * Tutti i prodotti dell'ordine devono essere della tipologia (cat) consentita dal buono docente.
+	 * Tutti i prodotti dell'ordine devono essere della tipologia (cat) consentita dal buono Carta della Cultura.
 	 *
 	 * @param  object $order the WC order.
 	 * @param  string $bene  il bene acquistabile con il buono.
@@ -302,12 +302,12 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 	 */
 	public static function is_purchasable( $order, $bene ) {
 
-		$wccd_categories = get_option( 'wccd-categories' );
-		$cats            = self::get_purchasable_cats( $bene, $wccd_categories );
+		$wccdc_categories = get_option( 'wccdc-categories' );
+		$cats            = self::get_purchasable_cats( $bene, $wccdc_categories );
 		$items           = $order->get_items();
 		$output          = true;
 
-		if ( is_array( $cats ) && ! empty( $wccd_categories ) ) {
+		if ( is_array( $cats ) && ! empty( $wccdc_categories ) ) {
 
 			foreach ( $items as $item ) {
 				$terms = get_the_terms( $item['product_id'], 'product_cat' );
@@ -361,7 +361,7 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 
 
 	/**
-	 * Mostra il buono docente nella thankyou page, nelle mail e nella pagina dell'ordine.
+	 * Mostra il buono Carta della Cultura nella thankyou page, nelle mail e nella pagina dell'ordine.
 	 *
 	 * @param  object $order the WC order.
 	 *
@@ -374,7 +374,7 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 
 		foreach ( $order->get_coupon_codes() as $coupon_code ) {
 
-			if ( false !== strpos( $coupon_code, 'wccd' ) ) {
+			if ( false !== strpos( $coupon_code, 'wccdc' ) ) {
 
 				$parts        = explode( '-', $coupon_code );
 				$teacher_code = isset( $parts[2] ) ? $parts[2] : null;
@@ -384,41 +384,41 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 			break;
 		}
 
-		if ( 'docente' === $data['payment_method'] ) {
+		if ( 'carta-della-cultura' === $data['payment_method'] ) {
 
-			echo '<p><strong>' . esc_html__( 'Carta del Docente', 'wccd' ) . ': </strong>' . esc_html( $order->get_meta( 'wc-codice-docente' ) ) . '</p>';
+			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wccdc' ) . ': </strong>' . esc_html( $order->get_meta( 'wc-codice-carta-della-cultura' ) ) . '</p>';
 
 		} elseif ( $teacher_code ) {
 
-			echo '<p><strong>' . esc_html__( 'Carta del Docente', 'wccd' ) . ': </strong>' . esc_html( $teacher_code ) . '</p>';
+			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wccdc' ) . ': </strong>' . esc_html( $teacher_code ) . '</p>';
 
 		}
 
-		if ( self::$orders_on_hold && 'docente' === $order->get_payment_method() ) {
+		if ( self::$orders_on_hold && 'carta-della-cultura' === $order->get_payment_method() ) {
 
 			if ( in_array( $order->get_status(), array( 'on-hold', 'pending' ), true ) ) {
 
 				/* Recupero il messaggio personalizzato salvato nelle impostazioni */
-				$message = get_option( 'wccd-email-order-received' );
+				$message = get_option( 'wccdc-email-order-received' );
 
 				if ( ! $message ) {
 
-					$message = __( 'L\'ordine verrà completato manualmente nei prossimi giorni e, contestualmente, verrà validato il buono Carta del Docente inserito. Riceverai una notifica email di conferma, grazie!', 'wccd' );
+					$message = __( 'L\'ordine verrà completato manualmente nei prossimi giorni e, contestualmente, verrà validato il buono Carta della Cultura inserito. Riceverai una notifica email di conferma, grazie!', 'wccdc' );
 
 				}
 
-				echo wp_kses_post( "<p>$message</p>", 'wccd' );
+				echo wp_kses_post( "<p>$message</p>", 'wccdc' );
 
 			} elseif ( 'failed' === $order->get_status() ) {
 
 				/* Recupero il messaggio personalizzato salvato nelle impostazioni */
-				$message = get_option( 'wccd-email-order-failed' );
+				$message = get_option( 'wccdc-email-order-failed' );
 				$message = str_replace( '[checkout-url]', '%s', $message );
 
 				if ( ! $message ) {
 
 					/* Translators: URL per completare il pagamento */
-					$message = __( 'La validazone del buono Carta del Docente ha restituito un errore e non è stato possibile completare l\'ordine, completa il pagamento a <a href="%s">questo indirizzo</a>.', 'wccd' );
+					$message = __( 'La validazone del buono Carta della Cultura ha restituito un errore e non è stato possibile completare l\'ordine, completa il pagamento a <a href="%s">questo indirizzo</a>.', 'wccdc' );
 
 				}
 
@@ -454,13 +454,13 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 	 *
 	 * @param int    $order_id     l'id dell'ordine.
 	 * @param float  $amount       il valore da assegnare al coupon.
-	 * @param string $teacher_code il codice del buono docente.
+	 * @param string $teacher_code il codice del buono Carta della Cultura.
 	 *
 	 * @return int l'id del coupon creato
 	 */
 	private static function create_coupon( $order_id, $amount, $teacher_code ) {
 
-		$coupon_code = 'wccd-' . $order_id . '-' . $teacher_code;
+		$coupon_code = 'wccdc-' . $order_id . '-' . $teacher_code;
 
 		$args = array(
 			'post_title'   => $coupon_code,
@@ -500,10 +500,10 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 
 
 	/**
-	 * Processa il buono docente inserito
+	 * Processa il buono Carta della Cultura inserito
 	 *
 	 * @param int    $order_id     l'id dell'ordine.
-	 * @param string $teacher_code il buono docente.
+	 * @param string $teacher_code il buono Carta della Cultura.
 	 * @param float  $import       il totale dell'ordine o il valore del coupon.
 	 * @param bool   $converted    se valorizzato il metodo viene utilizzato nella validazione del coupon - process_coupon().
 	 * @param bool   $complete     se valorizzato il metodo viene utilizzato per il completamento manuale di un ordine.
@@ -516,7 +516,7 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 
 		$output      = 1;
 		$order       = wc_get_order( $order_id );
-		$soap_client = new WCCD_Soap_Client( $teacher_code, $import );
+		$soap_client = new WCCDC_Soap_Client( $teacher_code, $import );
 
 		try {
 
@@ -538,7 +538,7 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 
 			if ( ! $purchasable ) {
 
-				$output = __( 'Uno o più prodotti nel carrello non sono acquistabili con il buono inserito.', 'wccd' );
+				$output = __( 'Uno o più prodotti nel carrello non sono acquistabili con il buono inserito.', 'wccdc' );
 
 			} else {
 
@@ -563,10 +563,10 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 
 						if ( $convert ) {
 
-							$output = __( 'Il valore del buono inserito non è sufficiente ed è stato convertito in buono sconto.', 'wccd' );
+							$output = __( 'Il valore del buono inserito non è sufficiente ed è stato convertito in buono sconto.', 'wccdc' );
 						} else {
 
-							$output = __( 'Le spese di spedizione devono essere saldate con altro metodo di pagamento.', 'wccd' );
+							$output = __( 'Le spese di spedizione devono essere saldate con altro metodo di pagamento.', 'wccdc' );
 						}
 					}
 				} else {
@@ -582,8 +582,8 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 
 						if ( ( is_object( $operation ) && 'OK' === $operation->checkResp->esito ) || $on_hold ) {
 
-							/*Aggiungo il buono docente all'ordine*/
-							$order->update_meta_data( 'wc-codice-docente', $teacher_code );
+							/*Aggiungo il buono Carta della Cultura all'ordine*/
+							$order->update_meta_data( 'wc-codice-carta-della-cultura', $teacher_code );
 
 							if ( ! $converted ) {
 
@@ -654,7 +654,7 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 		);
 
 		$data         = $this->get_post_data();
-		$teacher_code = $data['wc-codice-docente']; // Il buono inserito dall'utente.
+		$teacher_code = $data['wc-codice-carta-della-cultura']; // Il buono inserito dall'utente.
 
 		if ( $teacher_code ) {
 
@@ -670,7 +670,7 @@ class WCCD_Teacher_Gateway extends WC_Payment_Gateway {
 			} else {
 
 				/* Translators: Notifica all'utente nella pagina di checkout */
-				wc_add_notice( sprintf( __( 'Carta del Docente - %s', 'wccd' ), $notice ), 'error' );
+				wc_add_notice( sprintf( __( 'Carta della Cultura - %s', 'wccdc' ), $notice ), 'error' );
 
 			}
 		}
