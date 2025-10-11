@@ -1,9 +1,11 @@
 === ilGhera Carta della Cultura for WooCommerce - Premium ===
 Contributors: ghera74
 Tags: Woocommerce, e-commerce, shop, orders, payment, payment gateway, payment method, 
+Version: 0.9.0
 Stable tag: 0.9.0
-Requires at least: 4.0
+Requires at least: 5.0
 Tested up to: 6.8
+WC tested up to: 10
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
