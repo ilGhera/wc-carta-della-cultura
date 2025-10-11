@@ -11,11 +11,11 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * WCCD_Admin class
+ * WCCDC_Admin class
  *
  * @since 1.4.7
  */
-class WCCD_Admin {
+class WCCDC_Admin {
 
 	/**
 	 * The sandbox option
@@ -63,7 +63,7 @@ class WCCD_Admin {
 
 		$files = array();
 
-		foreach ( glob( WCCD_PRIVATE . '*' . $ext ) as $file ) {
+		foreach ( glob( WCCDC_PRIVATE . '*' . $ext ) as $file ) {
 			$files[] = $file;
 		}
 
@@ -86,7 +86,7 @@ class WCCD_Admin {
 
 			if ( $cert ) {
 
-				unlink( WCCD_PRIVATE . $cert );
+				unlink( WCCDC_PRIVATE . $cert );
 
 			}
 		}
@@ -167,15 +167,15 @@ class WCCD_Admin {
 			if ( 1 === intval( $n ) ) {
 
 				echo '<div class="add-cat-container">';
-					echo '<img class="add-cat" src="' . esc_url( WCCD_URI . 'images/add-cat.png' ) . '">';
-					echo '<img class="add-cat-hover wccdc" src="' . esc_url( WCCD_URI . 'images/add-cat-hover.png' ) . '">';
+					echo '<img class="add-cat" src="' . esc_url( WCCDC_URI . 'images/add-cat.png' ) . '">';
+					echo '<img class="add-cat-hover wccdc" src="' . esc_url( WCCDC_URI . 'images/add-cat-hover.png' ) . '">';
 				echo '</div>';
 
 			} else {
 
 				echo '<div class="remove-cat-container">';
-					echo '<img class="remove-cat" src="' . esc_url( WCCD_URI . 'images/remove-cat.png' ) . '">';
-					echo '<img class="remove-cat-hover" src="' . esc_url( WCCD_URI . 'images/remove-cat-hover.png' ) . '">';
+					echo '<img class="remove-cat" src="' . esc_url( WCCDC_URI . 'images/remove-cat.png' ) . '">';
+					echo '<img class="remove-cat-hover" src="' . esc_url( WCCDC_URI . 'images/remove-cat-hover.png' ) . '">';
 				echo '</div>';
 
 			}
@@ -268,13 +268,13 @@ class WCCD_Admin {
 
 			/*Genera ed esporta la richiesta di certificato .pem*/
 			$csr = openssl_csr_new( $dn, $privkey, array( 'digest_alg' => 'sha256' ) );
-			openssl_csr_export_to_file( $csr, WCCD_PRIVATE . 'files/certificate-request.pem' );
+			openssl_csr_export_to_file( $csr, WCCDC_PRIVATE . 'files/certificate-request.pem' );
 
 			/*Trasforma la richiesta di certificato in .der*/
-			$csr_der = $this->pem2der( file_get_contents( WCCD_PRIVATE . 'files/certificate-request.pem' ) );
+			$csr_der = $this->pem2der( file_get_contents( WCCDC_PRIVATE . 'files/certificate-request.pem' ) );
 
 			/*Preparo il backup*/
-			$bu_folder            = WCCD_PRIVATE . 'files/backups/';
+			$bu_folder            = WCCDC_PRIVATE . 'files/backups/';
 			$bu_new_folder_name   = count( glob( $bu_folder . '*', GLOB_ONLYDIR ) ) + 1;
 			$bu_new_folder_create = wp_mkdir_p( trailingslashit( $bu_folder . $bu_new_folder_name ) );
 
@@ -282,21 +282,21 @@ class WCCD_Admin {
 			if ( $bu_new_folder_create ) {
 
 				/*Esporta la richiesta di certificato .der*/
-				file_put_contents( WCCD_PRIVATE . 'files/backups/' . $bu_new_folder_name . '/certificate-request.der', $csr_der );
+				file_put_contents( WCCDC_PRIVATE . 'files/backups/' . $bu_new_folder_name . '/certificate-request.der', $csr_der );
 
 				/*Esporta la private key*/
-				openssl_pkey_export_to_file( $privkey, WCCD_PRIVATE . 'files/backups/' . $bu_new_folder_name . '/key.der' );
+				openssl_pkey_export_to_file( $privkey, WCCDC_PRIVATE . 'files/backups/' . $bu_new_folder_name . '/key.der' );
 
 			}
 
 			/*Esporta la richiesta di certificato .der*/
-			file_put_contents( WCCD_PRIVATE . 'files/certificate-request.der', $csr_der );
+			file_put_contents( WCCDC_PRIVATE . 'files/certificate-request.der', $csr_der );
 
 			/*Esporta la private key*/
-			openssl_pkey_export_to_file( $privkey, WCCD_PRIVATE . 'files/key.der' );
+			openssl_pkey_export_to_file( $privkey, WCCDC_PRIVATE . 'files/key.der' );
 
 			/*Download file .der*/
-			$cert_req_url = WCCD_PRIVATE . 'files/certificate-request.der';
+			$cert_req_url = WCCDC_PRIVATE . 'files/certificate-request.der';
 
 			if ( $cert_req_url ) {
 				header( 'Content-Description: File Transfer' );
@@ -321,7 +321,7 @@ class WCCD_Admin {
 	 */
 	public function wccdc_cert_activation() {
 
-		$soap_client = new WCCD_Soap_Client( '11aa22bb', '' );
+		$soap_client = new WCCDC_Soap_Client( '11aa22bb', '' );
 
 		try {
 
@@ -722,7 +722,7 @@ class WCCD_Admin {
 			echo '</div>';
 
 			echo '<div class="wrap-right">';
-				echo '<iframe width="300" height="1300" scrolling="no" src="http://www.ilghera.com/images/wccdc-premium-iframe.html"></iframe>';
+            echo '<iframe width="300" height="1300" scrolling="no" src="http://www.ilghera.com/images/wccdc-premium-iframe.html"></iframe>';
 			echo '</div>';
 			echo '<div class="clear"></div>';
 
@@ -777,35 +777,35 @@ class WCCD_Admin {
 						if ( isset( $_FILES['wccdc-cert']['tmp_name'] ) ) {
 
 							$tmp_name = sanitize_text_field( wp_unslash( $_FILES['wccdc-cert']['tmp_name'] ) );
-							move_uploaded_file( $tmp_name, WCCD_PRIVATE . $name );
+							move_uploaded_file( $tmp_name, WCCDC_PRIVATE . $name );
 
 						}
 
 						/*Conversione da .cer a .pem*/
-						$certificate_ca_cer         = WCCD_PRIVATE . $name;
+						$certificate_ca_cer         = WCCDC_PRIVATE . $name;
 						$certificate_ca_cer_content = file_get_contents( $certificate_ca_cer );
 						$certificate_ca_pem_content = '-----BEGIN CERTIFICATE-----' . PHP_EOL
 							. chunk_split( base64_encode( $certificate_ca_cer_content ), 64, PHP_EOL )
 							. '-----END CERTIFICATE-----' . PHP_EOL;
-						$certificate_ca_pem         = WCCD_PRIVATE . 'files/wccdc-cert.pem';
+						$certificate_ca_pem         = WCCDC_PRIVATE . 'files/wccdc-cert.pem';
 						file_put_contents( $certificate_ca_pem, $certificate_ca_pem_content );
 
 						/*Preparo i file necessari*/
-						$pem     = openssl_x509_read( file_get_contents( WCCD_PRIVATE . 'files/wccdc-cert.pem' ) );
-						$get_key = file_get_contents( WCCD_PRIVATE . 'files/key.der' );
+						$pem     = openssl_x509_read( file_get_contents( WCCDC_PRIVATE . 'files/wccdc-cert.pem' ) );
+						$get_key = file_get_contents( WCCDC_PRIVATE . 'files/key.der' );
 
 						/*Richiamo la passphrase dal db*/
 						$wccdc_password = base64_decode( get_option( 'wccdc-password' ) );
 
 						$key = array( $get_key, $wccdc_password );
 
-						openssl_pkcs12_export_to_file( $pem, WCCD_PRIVATE . 'files/wccdc-cert.p12', $key, $wccdc_password );
+						openssl_pkcs12_export_to_file( $pem, WCCDC_PRIVATE . 'files/wccdc-cert.p12', $key, $wccdc_password );
 
 						/*Preparo i file necessari*/
-						openssl_pkcs12_read( file_get_contents( WCCD_PRIVATE . 'files/wccdc-cert.p12' ), $p12, $wccdc_password );
+						openssl_pkcs12_read( file_get_contents( WCCDC_PRIVATE . 'files/wccdc-cert.p12' ), $p12, $wccdc_password );
 
 						/*Creo il certificato*/
-						file_put_contents( WCCD_PRIVATE . 'wccdc-certificate.pem', $p12['cert'] . $key[0] );
+						file_put_contents( WCCDC_PRIVATE . 'wccdc-certificate.pem', $p12['cert'] . $key[0] );
 
 					} else {
 						add_action( 'admin_notices', array( $this, 'not_valid_certificate' ) );
@@ -829,7 +829,7 @@ class WCCD_Admin {
 						if ( isset( $_FILES['wccdc-certificate']['tmp_name'] ) ) {
 
 							$tmp_name = sanitize_text_field( wp_unslash( $_FILES['wccdc-certificate']['tmp_name'] ) );
-							move_uploaded_file( $tmp_name, WCCD_PRIVATE . $name );
+							move_uploaded_file( $tmp_name, WCCDC_PRIVATE . $name );
 
 						}
 					} else {
@@ -917,5 +917,5 @@ class WCCD_Admin {
 
 }
 
-new WCCD_Admin();
+new WCCDC_Admin();
 
