@@ -2,7 +2,7 @@
  * ilGhera Carta Docente for WC - Admin js
  *
  * @author ilGhera
- * @package wc-carta-docente/js
+ * @package wc-carta-della-cultura/js
  *
  * @since 1.4.0
  */
@@ -10,16 +10,16 @@
 /**
  * Ajax - Elimina il certificato caricato precedentemente
  */
-var wccd_delete_certificate = function() {
+var wccdc_delete_certificate = function() {
 	jQuery(function($){
-		$('.wccd-delete-certificate').on('click', function(){
+		$('.wccdc-delete-certificate').on('click', function(){
 			var sure = confirm('Sei sicuro di voler eliminare il certificato?');
 			if(sure) {
 				var cert = $('.cert-loaded').text();
 				var data = {
-					'action': 'wccd-delete-certificate',
-					'wccd-delete': true,
-                    'delete-nonce': wccdData.delCertNonce,
+					'action': 'wccdc-delete-certificate',
+					'wccdc-delete': true,
+                    'delete-nonce': wccdcData.delCertNonce,
 					'cert': cert
 				}			
 				$.post(ajaxurl, data, function(response){
@@ -29,93 +29,93 @@ var wccd_delete_certificate = function() {
 		})	
 	})
 }
-wccd_delete_certificate();
+wccdc_delete_certificate();
 
 
 /**
  * Aggiunge un nuovo abbinamento bene/ categoria per il controllo in pagina di checkout
  */
-var wccd_add_cat = function() {
+var wccdc_add_cat = function() {
 	jQuery(function($){
-		$('.add-cat-hover.wccd').on('click', function(){
+		$('.add-cat-hover.wccdc').on('click', function(){
 			var number = $('.setup-cat').length + 1;
 
 			/*Beni già impostati da escludere*/
 			var beni_values = [];
-			$('.wccd-field.beni').each(function(){
+			$('.wccdc-field.beni').each(function(){
 				beni_values.push($(this).val());
 			})
 
 			var data = {
-				'action': 'wccd-add-cat',
+				'action': 'wccdc-add-cat',
 				'number': number,
 				'exclude-beni': beni_values.toString(),
-                'add-cat-nonce': wccdData.addCatNonce,
+                'add-cat-nonce': wccdcData.addCatNonce,
 			}
 			$.post(ajaxurl, data, function(response){
 				$(response).appendTo('.categories-container');
-				$('.wccd-tot-cats').val(number);
+				$('.wccdc-tot-cats').val(number);
 			})				
 		})
 	})
 }
-wccd_add_cat();
+wccdc_add_cat();
 
 
 /**
  * Rimuove un abbinamento bene/ categoria
  */
-var wccd_remove_cat = function() {
+var wccdc_remove_cat = function() {
 	jQuery(function($){
 		$(document).on('click', '.remove-cat-hover', function(response){
 			var cat = $(this).closest('li');
 			$(cat).remove();
 			var number = $('.setup-cat').length;
-			$('.wccd-tot-cats').val(number);
+			$('.wccdc-tot-cats').val(number);
 		})
 	})
 }
-wccd_remove_cat();
+wccdc_remove_cat();
 
 
 /**
  * Funzionalità Sandbox
  */
-var wccd_sandbox = function() {
+var wccdc_sandbox = function() {
 	jQuery(function($){
 
         var data, sandbox;
-        var nonce = $('#wccd-sandbox-nonce').attr('value');
+        var nonce = $('#wccdc-sandbox-nonce').attr('value');
         
         $(document).ready(function() {
 
-            if ( 'wccd-certificate' == $('.nav-tab.nav-tab-active').data('link') ) {
+            if ( 'wccdc-certificate' == $('.nav-tab.nav-tab-active').data('link') ) {
 
-                if ( $('.wccd-sandbox-field .tzCheckBox').hasClass( 'checked' ) ) {
-                    $('#wccd-certificate').hide();
-                    $('#wccd-sandbox-option').show();
+                if ( $('.wccdc-sandbox-field .tzCheckBox').hasClass( 'checked' ) ) {
+                    $('#wccdc-certificate').hide();
+                    $('#wccdc-sandbox-option').show();
 
                 } else {
-                    $('#wccd-certificate').show();
-                    $('#wccd-sandbox-option').show();
+                    $('#wccdc-certificate').show();
+                    $('#wccdc-sandbox-option').show();
                 }
 
             }
 
         })
 
-        $(document).on( 'click', '.wccd-sandbox-field .tzCheckBox', function() {
+        $(document).on( 'click', '.wccdc-sandbox-field .tzCheckBox', function() {
 
             if ( $(this).hasClass( 'checked' ) ) {
-                $('#wccd-certificate').hide();
+                $('#wccdc-certificate').hide();
                 sandbox = 1;
             } else {
-                $('#wccd-certificate').show('slow');
+                $('#wccdc-certificate').show('slow');
                 sandbox = 0;
             }
 
             data = {
-                'action': 'wccd-sandbox',
+                'action': 'wccdc-sandbox',
                 'sandbox': sandbox,
                 'nonce': nonce
             }
@@ -126,29 +126,29 @@ var wccd_sandbox = function() {
 
     })
 }
-wccd_sandbox();
+wccdc_sandbox();
 
 
 /**
  * Menu di navigazione della pagina opzioni
  */
-var wccd_menu_navigation = function() {
+var wccdc_menu_navigation = function() {
 	jQuery(function($){
-		var contents = $('.wccd-admin');
+		var contents = $('.wccdc-admin');
 		var url = window.location.href.split("#")[0];
 		var hash = window.location.href.split("#")[1];
 
 		if(hash) {
 	        contents.hide();		    
             
-            if( 'wccd-certificate' == hash ) {
-                wccd_sandbox();
+            if( 'wccdc-certificate' == hash ) {
+                wccdc_sandbox();
             } else {
                 $('#' + hash).fadeIn(200);		
             }
 
-	        $('h2#wccd-admin-menu a.nav-tab-active').removeClass("nav-tab-active");
-	        $('h2#wccd-admin-menu a').each(function(){
+	        $('h2#wccdc-admin-menu a.nav-tab-active').removeClass("nav-tab-active");
+	        $('h2#wccdc-admin-menu a').each(function(){
 	        	if($(this).data('link') == hash) {
 	        		$(this).addClass('nav-tab-active');
 	        	}
@@ -159,20 +159,20 @@ var wccd_menu_navigation = function() {
 	        }, 'slow');
 		}
 
-		$("h2#wccd-admin-menu a").click(function () {
+		$("h2#wccdc-admin-menu a").click(function () {
 	        var $this = $(this);
 	        
 	        contents.hide();
 	        $("#" + $this.data("link")).fadeIn(200);
 
-            if( 'wccd-certificate' == $this.data("link") ) {
-                $('#wccd-sandbox-option').fadeIn(200);
+            if( 'wccdc-certificate' == $this.data("link") ) {
+                $('#wccdc-sandbox-option').fadeIn(200);
             
-                wccd_sandbox();
+                wccdc_sandbox();
             
             }
 	        
-            $('h2#wccd-admin-menu a.nav-tab-active').removeClass("nav-tab-active");
+            $('h2#wccdc-admin-menu a.nav-tab-active').removeClass("nav-tab-active");
 	        $this.addClass('nav-tab-active');
 
 	        window.location = url + '#' + $this.data('link');
@@ -183,7 +183,7 @@ var wccd_menu_navigation = function() {
 
 	})
 }
-wccd_menu_navigation();
+wccdc_menu_navigation();
 
 /**
  * Mostra i dettagli della mail all'utente
@@ -191,12 +191,12 @@ wccd_menu_navigation();
  *
  * @return void
  */
-var wccd_email_details = function() {
+var wccdc_email_details = function() {
     jQuery(function($){
         $(document).ready(function() {
 
-            var on_hold       = $('.wccd-orders-on-hold');
-            var email_details = $('.wccd-email-details');
+            var on_hold       = $('.wccdc-orders-on-hold');
+            var email_details = $('.wccdc-email-details');
 
             if ( $('.tzCheckBox', on_hold).hasClass( 'checked' ) ) {
                 $(email_details).show();
@@ -215,20 +215,20 @@ var wccd_email_details = function() {
         })
     })
 }
-wccd_email_details();
+wccdc_email_details();
 
 /**
  * Attivazione opzione coupon con esclusione spese di spedizione
  *
  * @return void
  */
-var wccd_exclude_shipping = function() {
+var wccdc_exclude_shipping = function() {
 
     jQuery(function($){
         $(document).ready(function() {
 
-            var excludeShipping = $('.wccd-exclude-shipping');
-            var coupon          = $('.wccd-coupon');
+            var excludeShipping = $('.wccdc-exclude-shipping');
+            var coupon          = $('.wccdc-coupon');
 
             $('.tzCheckBox', excludeShipping).on( 'click', function() {
 
@@ -251,4 +251,4 @@ var wccd_exclude_shipping = function() {
     })
 
 }
-wccd_exclude_shipping();
+wccdc_exclude_shipping();
