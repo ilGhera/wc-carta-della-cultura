@@ -10,7 +10,7 @@
  * Requires at least: 4.0
  * Tested up to: 6.8
  * WC tested up to: 10
- * Text Domain: wccdc
+ * Text Domain: wc-carta-della-cultura
  * Domain Path: /languages
  * Requires Plugins: woocommerce
  * License: GPLv3
@@ -184,7 +184,7 @@ function wccdc_update_message( $plugin_data, $response ) {
 	if ( ! $key ) {
 
 		/* Translators: the admin URL */
-		$message = sprintf( __( 'Per ricevere aggiornamenti devi inserire la tua <b>Premium Key</b> nelle <a href="%sadmin.php/?page=wccdc-settings">impostazioni del plugin</a>. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wccdc' ), admin_url() );
+		$message = sprintf( __( 'Per ricevere aggiornamenti devi inserire la tua <b>Premium Key</b> nelle <a href="%sadmin.php/?page=wccdc-settings">impostazioni del plugin</a>. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wc-carta-della-cultura' ), admin_url() );
 
 	} else {
 
@@ -194,9 +194,9 @@ function wccdc_update_message( $plugin_data, $response ) {
 		$now         = strtotime( 'today' );
 
 		if ( $limit < $now ) {
-			$message = __( 'Sembra che la tua <strong>Premium Key</strong> sia scaduta. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wccdc' );
+			$message = __( 'Sembra che la tua <strong>Premium Key</strong> sia scaduta. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wc-carta-della-cultura' );
 		} elseif ( 3518 !== intval( $decoded_key[2] ) ) {
-			$message = __( 'Sembra che la tua <strong>Premium Key</strong> non sia valida. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wccdc' );
+			$message = __( 'Sembra che la tua <strong>Premium Key</strong> non sia valida. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wc-carta-della-cultura' );
 		}
 	}
 
