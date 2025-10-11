@@ -46,14 +46,14 @@ class WCCD_Soap_Client {
 	public $passphrase;
 
 	/**
-	 * Il file WSDL previsto da Carta del Docente
+	 * Il file WSDL previsto da Carta della Cultura
 	 *
 	 * @var string
 	 */
 	public $wsdl;
 
 	/**
-	 * Il buono Carta del Docente
+	 * Il buono Carta della Cultura
 	 *
 	 * @var string
 	 */
@@ -70,7 +70,7 @@ class WCCD_Soap_Client {
 	/**
 	 * The constructor
 	 *
-	 * @param string $codice_voucher il codice Carta del Docente.
+	 * @param string $codice_voucher il codice Carta della Cultura.
 	 * @param float  $import         il valore del buono.
 	 *
 	 * @return void

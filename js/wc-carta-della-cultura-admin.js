@@ -1,5 +1,5 @@
 /**
- * ilGhera Carta Docente for WC - Admin js
+ * ilGhera Carta della Cultura for WC - Admin js
  *
  * @author ilGhera
  * @package wc-carta-della-cultura/js

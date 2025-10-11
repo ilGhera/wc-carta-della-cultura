@@ -96,7 +96,7 @@ class WCCD_Admin {
 	}
 
 	/**
-	 * Restituisce il nome esatto del bene Carta del Docente partendo dallo slug
+	 * Restituisce il nome esatto del bene Carta della Cultura partendo dallo slug
 	 *
 	 * @param  array  $beni      l'elenco dei beni di Carta della Cultura.
 	 * @param  string $bene_slug lo slug del bene.
@@ -224,7 +224,7 @@ class WCCD_Admin {
 	}
 
 	/**
-	 * Download della richiesta di certificato da utilizzare sul portale Carta del Docente
+	 * Download della richiesta di certificato da utilizzare sul portale Carta della Cultura
 	 * Se non presenti, genera la chiave e la richiesta di certificato .der,
 	 *
 	 * @return void
@@ -575,7 +575,7 @@ class WCCD_Admin {
 					echo '<h3>' . esc_html__( 'Modalità Sandbox', 'wccdc' ) . '</h3>';
 				echo '<p class="description">';
 					/* Translators: the email address */
-					printf( wp_kses_post( __( 'Attiva questa funzionalità per testare buoni Carta del Docente in un ambiente di prova.<br>Richiedi i buoni test scrivendo a <a href="%s">docenti@sogei.it</a>', 'wccdc' ) ), 'mailto:docenti@sogei.it' );
+					printf( wp_kses_post( __( 'Attiva questa funzionalità per testare buoni Carta della Cultura in un ambiente di prova.<br>Richiedi i buoni test scrivendo a <a href="%s">docenti@sogei.it</a>', 'wccdc' ) ), 'mailto:docenti@sogei.it' );
 				echo '</p>';
 
 					echo '<form name="wccdc-sandbox" class="wccdc-sandbox" method="post" enctype="multipart/form-data" action="">';
@@ -634,7 +634,7 @@ class WCCD_Admin {
 								echo '<th scope="row">' . esc_html__( 'Utilizzo immagine', 'wccdc' ) . '</th>';
 								echo '<td>';
 									echo '<input type="checkbox" name="wccdc-image" value="1"' . ( 1 === intval( $wccdc_image ) ? ' checked="checked"' : '' ) . '>';
-									echo '<p class="description">' . wp_kses_post( __( 'Mostra il logo <i>Carta del Docente</i> nella pagine di checkout.', 'wccdc' ) ) . '</p>';
+									echo '<p class="description">' . wp_kses_post( __( 'Mostra il logo <i>Carta della Cultura</i> nella pagine di checkout.', 'wccdc' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
@@ -642,7 +642,7 @@ class WCCD_Admin {
 								echo '<th scope="row">' . esc_html__( 'Controllo prodotti', 'wccdc' ) . '</th>';
 								echo '<td>';
 										echo '<input type="checkbox" name="wccdc-items-check" value="1"' . ( 1 === intval( $wccdc_items_check ) ? ' checked="checked"' : '' ) . '>';
-									echo '<p class="description">' . wp_kses_post( __( 'Mostra il metodo di pagamento solo se il/ i prodotti a carrello sono acquistabili con buoni <i>Carta del Docente</i>.<br>Più prodotti dovranno prevedere l\'uso di buoni dello stesso ambito di utilizzo.', 'wccdc' ) ) . '</p>';
+									echo '<p class="description">' . wp_kses_post( __( 'Mostra il metodo di pagamento solo se il/ i prodotti a carrello sono acquistabili con buoni <i>Carta della Cultura</i>.<br>Più prodotti dovranno prevedere l\'uso di buoni dello stesso ambito di utilizzo.', 'wccdc' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
@@ -650,13 +650,13 @@ class WCCD_Admin {
 								echo '<th scope="row">' . esc_html__( 'Ordini in sospeso', 'wccdc' ) . '</th>';
 								echo '<td>';
 										echo '<input type="checkbox" name="wccdc-orders-on-hold" value="1"' . ( 1 === intval( $wccdc_orders_on_hold ) ? ' checked="checked"' : '' ) . '>';
-									echo '<p class="description">' . wp_kses_post( __( 'I buoni Carta del Docente verranno validati con il completamento manuale degli ordini.', 'wccdc' ) ) . '</p>';
+									echo '<p class="description">' . wp_kses_post( __( 'I buoni Carta della Cultura verranno validati con il completamento manuale degli ordini.', 'wccdc' ) ) . '</p>';
 								echo '</td>';
 							echo '<tr class="wccdc-exclude-shipping">';
 								echo '<th scope="row">' . esc_html__( 'Spese di spedizione', 'wccdc' ) . '</th>';
 								echo '<td>';
 										echo '<input type="checkbox" name="wccdc-exclude-shipping" value="1"' . ( 1 === intval( $wccdc_exclude_shipping ) ? ' checked="checked"' : '' ) . '>';
-									echo '<p class="description">' . wp_kses_post( __( 'Escludi le spese di spedizione dal pagamento con Carta del Docente.', 'wccdc' ) ) . '</p>';
+									echo '<p class="description">' . wp_kses_post( __( 'Escludi le spese di spedizione dal pagamento con Carta della Cultura.', 'wccdc' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
@@ -664,14 +664,14 @@ class WCCD_Admin {
 								echo '<th scope="row">' . esc_html__( 'Conversione in coupon', 'wccdc' ) . '</th>';
 								echo '<td>';
 									echo '<input type="checkbox" name="wccdc-coupon" value="1"' . ( 1 === intval( $wccdc_coupon ) ? ' checked="checked"' : '' ) . '>';
-									echo '<p class="description">' . wp_kses_post( __( 'Nel caso in cui il buono <i>Carta del Docente</i> inserito sia inferiore al totale a carrello, viene convertito in <i>Codice promozionale</i> ed applicato all\'ordine.', 'wccdc' ) ) . '</p>';
+									echo '<p class="description">' . wp_kses_post( __( 'Nel caso in cui il buono <i>Carta della Cultura</i> inserito sia inferiore al totale a carrello, viene convertito in <i>Codice promozionale</i> ed applicato all\'ordine.', 'wccdc' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
 							echo '<tr class="wccdc-email-order-received wccdc-email-details">';
 								echo '<th scope="row">' . esc_html__( 'Ordine ricevuto', 'wccdc' ) . '</th>';
 								echo '<td>';
-									$default_order_received_message = __( 'L\'ordine verrà completato manualmente nei prossimi giorni e, contestualmente, verrà validato il buono Carta del Docente inserito. Riceverai una notifica email di conferma, grazie!', 'wccdc' );
+									$default_order_received_message = __( 'L\'ordine verrà completato manualmente nei prossimi giorni e, contestualmente, verrà validato il buono Carta della Cultura inserito. Riceverai una notifica email di conferma, grazie!', 'wccdc' );
 									echo '<textarea cols="6" rows="6" class="regular-text" name="wccdc-email-order-received" placeholder="' . esc_html( $default_order_received_message ) . '" value="' . esc_html( $wccdc_email_order_received ) . '">' . esc_html( $wccdc_email_order_received ) . '</textarea>';
 									echo '<p class="description">';
 										echo wp_kses_post( __( 'Messaggio della mail inviata all\'utente al ricevimento dell\'ordine.', 'wccdc' ) );
@@ -699,7 +699,7 @@ class WCCD_Admin {
 							echo '<tr class="wccdc-email-order-failed wccdc-email-details">';
 								echo '<th scope="row">' . esc_html__( 'Ordine fallito', 'wccdc' ) . '</th>';
 								echo '<td>';
-										$default_order_failed_message = __( 'La validazone del buono Carta del Docente ha restituito un errore e non è stato possibile completare l\'ordine, effettua il pagamento a <a href="[checkout-url]">questo indirizzo</a>.' );
+										$default_order_failed_message = __( 'La validazone del buono Carta della Cultura ha restituito un errore e non è stato possibile completare l\'ordine, effettua il pagamento a <a href="[checkout-url]">questo indirizzo</a>.' );
 										echo '<textarea cols="6" rows="6" class="regular-text" name="wccdc-email-order-failed" placeholder="' . esc_html( $default_order_failed_message ) . '" value="' . esc_html( $wccdc_email_order_failed ) . '">' . esc_html( $wccdc_email_order_failed ) . '</textarea>';
 										echo '<p class="description">';
 											echo '<span class="shortcodes">';
