@@ -52,7 +52,6 @@ function wccdc_premium_activation() {
 	require WCCDC_INCLUDES . 'class-wccdc-soap-client.php';
 	require WCCDC_INCLUDES . 'class-wccdc-admin.php';
 	require WCCDC_INCLUDES . 'class-wccdc.php';
-	require WCCDC_INCLUDES . 'ilghera-notice/class-ilghera-notice.php';
 
 	/**
 	 * Script e folgi di stile front-end
