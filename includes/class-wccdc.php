@@ -42,7 +42,7 @@ class WCCDC {
 		$this->orders_on_hold = get_option( 'wccdc-orders-on-hold' );
 
 		/* Filters */
-		add_filter( 'woocommerce_payment_gateways', array( $this, 'wccdc_add_teacher_gateway_class' ) );
+		add_filter( 'woocommerce_payment_gateways', array( $this, 'wccdc_add_gateway_class' ) );
 
 		/* Actions */
 		add_action( 'wp_ajax_check-for-coupon', array( $this, 'wccdc_check_for_coupon' ) );
@@ -137,7 +137,7 @@ class WCCDC {
 	 *
 	 * @return array
 	 */
-	public function wccdc_add_teacher_gateway_class( $methods ) {
+	public function wccdc_add_gateway_class( $methods ) {
 
 		$available = ( $this->coupon_option && $this->wccdc_coupon_applied() ) ? false : true;
 		$sandbox   = get_option( 'wccdc-sandbox' );
@@ -146,7 +146,7 @@ class WCCDC {
 
 			if ( $sandbox || ( wccdc_admin::get_the_file( '.pem' ) && get_option( 'wccdc-cert-activation' ) ) ) {
 
-				$methods[] = 'WCCDC_Teacher_Gateway';
+				$methods[] = 'WCCDC_Gateway';
 
 			}
 		}
@@ -172,9 +172,9 @@ class WCCDC {
 				$parts         = explode( '-', $coupon_code );
 				$coupon        = new WC_Coupon( $coupon_code );
 				$coupon_amount = $coupon->get_amount();
-				$teacher_code  = $coupon->get_description();
+				$wccdc_code    = $coupon->get_description();
 
-				$notice = WCCDC_Teacher_Gateway::process_code( $parts[1], $teacher_code, $coupon_amount, true );
+				$notice = WCCDC_Gateway::process_code( $parts[1], $wccdc_code, $coupon_amount, true );
 
 				if ( 1 !== intval( $notice ) ) {
 
@@ -235,9 +235,9 @@ class WCCDC {
 
 			if ( 'carta-della-cultura' === $order->get_payment_method() ) {
 
-				$teacher_code = $order->get_meta( 'wc-codice-carta-dela-cultura' );
-				$total        = $order->get_total();
-				$validate     = WCCDC_Teacher_Gateway::process_code( $order_id, $teacher_code, $total, false, true );
+				$wccdc_code = $order->get_meta( 'wc-codice-carta-dela-cultura' );
+				$total      = $order->get_total();
+				$validate   = WCCDC_Gateway::process_code( $order_id, $wccdc_code, $total, false, true );
 
 				if ( 1 !== intval( $validate ) ) {
 
