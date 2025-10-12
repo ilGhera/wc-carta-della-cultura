@@ -11,11 +11,11 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * WCCDC_Teacher_Gateway class
+ * WCCDC_Gateway class
  *
  * @since 1.4.6
  */
-class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
+class WCCDC_Gateway extends WC_Payment_Gateway {
 
 	/**
 	 * Coupon option
@@ -68,13 +68,13 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 		$this->description = $this->get_option( 'description' );
 
 		/* Filters */
-		add_filter( 'woocommerce_available_payment_gateways', array( $this, 'unset_teacher_gateway' ) );
+		add_filter( 'woocommerce_available_payment_gateways', array( $this, 'unset_wccdc_gateway' ) );
 
 		/* Actions */
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
-		add_action( 'woocommerce_order_details_after_order_table', array( $this, 'display_teacher_code' ), 10, 1 );
-		add_action( 'woocommerce_email_after_order_table', array( $this, 'display_teacher_code' ), 10, 1 );
-		add_action( 'woocommerce_admin_order_data_after_billing_address', array( $this, 'display_teacher_code' ), 10, 1 );
+		add_action( 'woocommerce_order_details_after_order_table', array( $this, 'display_wccdc_code' ), 10, 1 );
+		add_action( 'woocommerce_email_after_order_table', array( $this, 'display_wccdc_code' ), 10, 1 );
+		add_action( 'woocommerce_admin_order_data_after_billing_address', array( $this, 'display_wccdc_code' ), 10, 1 );
 
 		/* Shortcodes */
 		add_shortcode( 'checkout-url', array( $this, 'get_checkout_payment_url' ) );
@@ -88,7 +88,7 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 	 *
 	 * @return array I metodi aggiornati
 	 */
-	public function unset_teacher_gateway( $available_gateways ) {
+	public function unset_wccdc_gateway( $available_gateways ) {
 
 		if ( is_admin() || ! is_checkout() || ! get_option( 'wccdc-items-check' ) ) {
 
@@ -358,17 +358,17 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 	 *
 	 * @return void
 	 */
-	public function display_teacher_code( $order ) {
+	public function display_wccdc_code( $order ) {
 
-		$data         = $order->get_data();
-		$teacher_code = null;
+		$data       = $order->get_data();
+		$wccdc_code = null;
 
 		foreach ( $order->get_coupon_codes() as $coupon_code ) {
 
 			if ( false !== strpos( $coupon_code, 'wc-carta-della-cultura' ) ) {
 
-				$parts        = explode( '-', $coupon_code );
-				$teacher_code = isset( $parts[2] ) ? $parts[2] : null;
+				$parts      = explode( '-', $coupon_code );
+				$wccdc_code = isset( $parts[2] ) ? $parts[2] : null;
 
 			}
 
@@ -379,9 +379,9 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wc-carta-della-cultura' ) . ': </strong>' . esc_html( $order->get_meta( 'wc-codice-carta-della-cultura' ) ) . '</p>';
 
-		} elseif ( $teacher_code ) {
+		} elseif ( $wccdc_code ) {
 
-			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wc-carta-della-cultura' ) . ': </strong>' . esc_html( $teacher_code ) . '</p>';
+			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wc-carta-della-cultura' ) . ': </strong>' . esc_html( $wccdc_code ) . '</p>';
 
 		}
 
@@ -442,20 +442,20 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 	/**
 	 * Crea un nuovo coupon
 	 *
-	 * @param int    $order_id     l'id dell'ordine.
-	 * @param float  $amount       il valore da assegnare al coupon.
-	 * @param string $teacher_code il codice del buono Carta della Cultura.
+	 * @param int    $order_id   l'id dell'ordine.
+	 * @param float  $amount     il valore da assegnare al coupon.
+	 * @param string $wccdc_code il codice del buono Carta della Cultura.
 	 *
 	 * @return int l'id del coupon creato
 	 */
-	private static function create_coupon( $order_id, $amount, $teacher_code ) {
+	private static function create_coupon( $order_id, $amount, $wccdc_code ) {
 
-		$coupon_code = 'wccdc-' . $order_id . '-' . $teacher_code;
+		$coupon_code = 'wccdc-' . $order_id . '-' . $wccdc_code;
 
 		$args = array(
 			'post_title'   => $coupon_code,
 			'post_content' => '',
-			'post_excerpt' => $teacher_code,
+			'post_excerpt' => $wccdc_code,
 			'post_type'    => 'shop_coupon',
 			'post_status'  => 'publish',
 			'post_author'  => 1,
@@ -491,21 +491,21 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 	/**
 	 * Processa il buono Carta della Cultura inserito
 	 *
-	 * @param int    $order_id     l'id dell'ordine.
-	 * @param string $teacher_code il buono Carta della Cultura.
+	 * @param int    $order_id   l'id dell'ordine.
+	 * @param string $wccdc_code il buono Carta della Cultura.
 	 * @param float  $import       il totale dell'ordine o il valore del coupon.
 	 * @param bool   $converted    se valorizzato il metodo viene utilizzato nella validazione del coupon - process_coupon().
 	 * @param bool   $complete     se valorizzato il metodo viene utilizzato per il completamento manuale di un ordine.
 	 *
 	 * @return mixed string in caso di errore, 1 in alternativa
 	 */
-	public static function process_code( $order_id, $teacher_code, $import, $converted = false, $complete = false ) {
+	public static function process_code( $order_id, $wccdc_code, $import, $converted = false, $complete = false ) {
 
 		global $woocommerce;
 
 		$output      = 1;
 		$order       = wc_get_order( $order_id );
-		$soap_client = new WCCDC_Soap_Client( $teacher_code, $import );
+		$soap_client = new WCCDC_Soap_Client( $wccdc_code, $import );
 
 		try {
 
@@ -543,7 +543,7 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 					}
 
 					/* Creazione coupon */
-					$coupon_code = self::create_coupon( $order_id, $importo_buono, $teacher_code );
+					$coupon_code = self::create_coupon( $order_id, $importo_buono, $wccdc_code );
 
 					if ( $coupon_code && ! WC()->cart->has_discount( $coupon_code ) ) {
 
@@ -572,7 +572,7 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 						if ( ( is_object( $operation ) && 'OK' === $operation->checkResp->esito ) || $on_hold ) {
 
 							/*Aggiungo il buono Carta della Cultura all'ordine*/
-							$order->update_meta_data( 'wc-codice-carta-della-cultura', $teacher_code );
+							$order->update_meta_data( 'wc-codice-carta-della-cultura', $wccdc_code );
 
 							if ( ! $converted ) {
 
@@ -641,12 +641,12 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 			'redirect' => '',
 		);
 
-		$data         = $this->get_post_data();
-		$teacher_code = $data['wc-codice-carta-della-cultura']; // Il buono inserito dall'utente.
+		$data       = $this->get_post_data();
+		$wccdc_code = $data['wc-codice-carta-della-cultura']; // Il buono inserito dall'utente.
 
-		if ( $teacher_code ) {
+		if ( $wccdc_code ) {
 
-			$notice = self::process_code( $order_id, $teacher_code, $import );
+			$notice = self::process_code( $order_id, $wccdc_code, $import );
 
 			if ( 1 === intval( $notice ) ) {
 
