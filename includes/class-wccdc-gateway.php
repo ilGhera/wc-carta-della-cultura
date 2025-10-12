@@ -227,7 +227,7 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 				'description' => array(
 					'title'   => __( 'Messaggio utente', 'woocommerce' ),
 					'type'    => 'textarea',
-					'default' => 'Consente ai docenti di utilizzare il buono a loro riservato per l\'acquisto di materiale didattico.',
+					'default' => '',
 				),
 			)
 		);
