@@ -18,27 +18,6 @@ defined( 'ABSPATH' ) || exit;
 class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 	/**
-	 * Coupon option
-	 *
-	 * @var bool
-	 */
-	public static $coupon_option;
-
-	/**
-	 * Orders on hold option
-	 *
-	 * @var bool
-	 */
-	public static $orders_on_hold;
-
-	/**
-	 * Exclude shipping from the payment
-	 *
-	 * @var bool
-	 */
-	public static $exclude_shipping;
-
-	/**
 	 * The constructor
 	 *
 	 * @return void
@@ -48,12 +27,8 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 		$this->plugin_id          = 'woocommerce_carta_della_cultura';
 		$this->id                 = 'carta-della-cultura';
 		$this->has_fields         = true;
-		$this->method_title       = 'Carta della Cultura';
-		$this->method_description = 'Consente ai docenti di utilizzare il buono a loro riservato per l\'acquisto di materiale didattico.';
-
-		self::$coupon_option    = get_option( 'wccdc-coupon' );
-		self::$orders_on_hold   = get_option( 'wccdc-orders-on-hold' );
-		self::$exclude_shipping = get_option( 'wccdc-exclude-shipping' );
+		$this->method_title       = __( 'Carta della Cultura', 'wc-carta-della-cultura' );
+		$this->method_description = __( 'Consente ai docenti di utilizzare il buono a loro riservato per l\'acquisto di materiale didattico.', 'wc-carta-della-cultura' );
 
 		if ( get_option( 'wccdc-image' ) ) {
 
@@ -67,140 +42,12 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 		$this->title       = $this->get_option( 'title' );
 		$this->description = $this->get_option( 'description' );
 
-		/* Filters */
-		add_filter( 'woocommerce_available_payment_gateways', array( $this, 'unset_teacher_gateway' ) );
-
 		/* Actions */
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
-		add_action( 'woocommerce_order_details_after_order_table', array( $this, 'display_teacher_code' ), 10, 1 );
-		add_action( 'woocommerce_email_after_order_table', array( $this, 'display_teacher_code' ), 10, 1 );
-		add_action( 'woocommerce_admin_order_data_after_billing_address', array( $this, 'display_teacher_code' ), 10, 1 );
+		add_action( 'woocommerce_order_details_after_order_table', array( $this, 'display_code' ), 10, 1 );
+		add_action( 'woocommerce_email_after_order_table', array( $this, 'display_code' ), 10, 1 );
+		add_action( 'woocommerce_admin_order_data_after_billing_address', array( $this, 'display_code' ), 10, 1 );
 
-		/* Shortcodes */
-		add_shortcode( 'checkout-url', array( $this, 'get_checkout_payment_url' ) );
-
-	}
-
-	/**
-	 * Disabilita il metodo di pagamento se i prodotti a carrello richiedono buoni con ambito differente
-	 *
-	 * @param array $available_gateways I metodi di pagamento disponibili.
-	 *
-	 * @return array I metodi aggiornati
-	 */
-	public function unset_teacher_gateway( $available_gateways ) {
-
-		if ( is_admin() || ! is_checkout() || ! get_option( 'wccdc-items-check' ) ) {
-
-			return $available_gateways;
-
-		}
-
-		$unset      = false;
-		$cat_ids    = array();
-		$categories = get_option( 'wccdc-categories' );
-		$cats       = array();
-
-		if ( empty( $categories ) ) {
-
-			return $available_gateways;
-
-		}
-
-		if ( is_array( $categories ) ) {
-
-			foreach ( $categories as $cat ) {
-
-				if ( is_array( $cat ) ) {
-
-					$cat_id = current( $cat );
-					$bene   = key( $cat );
-
-					if ( ! isset( $cats[ $bene ] ) ) {
-
-						$cats[ $bene ] = array();
-					}
-
-					$cats[ $bene ][] = $cat_id;
-				}
-			}
-		}
-
-		/**
-		 * Questo array conterrà tutti gli ambiti Carta della Cultura richiesti
-		 * da ciascun prodotto nel carrello. Ogni elemento sarà un array di stringhe (gli ambiti).
-		 * Esempio: [ ['libri-e-testi'], ['hardware', 'software'] ]
-		 */
-		$cart_item_required_ambits = array();
-
-		/* Itera su ogni prodotto nel carrello. */
-		foreach ( WC()->cart->get_cart_contents() as $cart_item_key => $values ) {
-
-			$product_id = $values['product_id'];
-			$terms      = get_the_terms( $product_id, 'product_cat' ); /* Ottiene le categorie WooCommerce del prodotto. */
-
-			if ( is_array( $terms ) ) {
-
-				$product_found_ambits = array();
-
-				foreach ( $terms as $term ) {
-
-					/**
-					 * Itera sulla tua nuova mappatura $cats.
-					 * Per ogni ambito ($cdd_ambito), controlla se l'ID della categoria del prodotto
-					 * è presente tra gli ID di categoria associati a quell'ambito.
-					 */
-					foreach ( $cats as $cdd_ambito => $mapped_cat_ids ) {
-
-						if ( in_array( $term->term_id, $mapped_cat_ids, true ) ) {
-
-							$product_found_ambits[] = $cdd_ambito; /* Aggiungi l'ambito trovato per questo prodotto. */
-						}
-					}
-				}
-
-				/* Rimuovi duplicati tra gli ambiti trovati per questo singolo prodotto. */
-				$product_found_ambits = array_unique( $product_found_ambits );
-
-				/* Aggiunge gli ambiti validi per questo prodotto all'array generale del carrello. */
-				$cart_item_required_ambits[] = $product_found_ambits;
-
-			}
-		}
-
-		/**
-		 * Ora, controlliamo se c'è un ambito comune a TUTTI i prodotti nel carrello.
-		 * Questo è cruciale per impedire l'uso del metodo se ci sono prodotti con ambiti differenti.
-		 */
-		if ( ! empty( $cart_item_required_ambits ) ) {
-			/**
-			 * Se c'è un solo prodotto nel carrello, o il carrello ha un solo set di ambiti,
-			 * non c'è bisogno di calcolare l'intersezione in questo punto specifico.
-			 */
-			if ( 1 < count( $cart_item_required_ambits ) ) {
-
-				/**
-				 * Calcola l'intersezione di tutti gli array di ambiti raccolti.
-				 * Se l'intersezione è vuota, significa che non c'è un ambito comune
-				 * a TUTTI i prodotti. Questo implica che i prodotti richiederebbero
-				 * buoni con ambiti differenti, e quindi il gateway deve essere disabilitato.
-				 */
-				$common_ambits = call_user_func_array( 'array_intersect', $cart_item_required_ambits );
-
-				if ( empty( $common_ambits ) ) {
-
-					$unset = true;
-				}
-			}
-		}
-
-		/* Se $unset è true, rimuovi il gateway "carta-della-cultura". */
-		if ( $unset ) {
-
-			unset( $available_gateways['carta-della-cultura'] );
-		}
-
-		return $available_gateways;
 	}
 
 	/**
@@ -358,131 +205,14 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 	 *
 	 * @return void
 	 */
-	public function display_teacher_code( $order ) {
+	public function display_code( $order ) {
 
-		$data         = $order->get_data();
-		$teacher_code = null;
-
-		foreach ( $order->get_coupon_codes() as $coupon_code ) {
-
-			if ( false !== strpos( $coupon_code, 'wc-carta-della-cultura' ) ) {
-
-				$parts        = explode( '-', $coupon_code );
-				$teacher_code = isset( $parts[2] ) ? $parts[2] : null;
-
-			}
-
-			break;
-		}
+		$data       = $order->get_data();
+		$wccdc_code = null;
 
 		if ( 'carta-della-cultura' === $data['payment_method'] ) {
 
 			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wc-carta-della-cultura' ) . ': </strong>' . esc_html( $order->get_meta( 'wc-codice-carta-della-cultura' ) ) . '</p>';
-
-		} elseif ( $teacher_code ) {
-
-			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wc-carta-della-cultura' ) . ': </strong>' . esc_html( $teacher_code ) . '</p>';
-
-		}
-
-		if ( self::$orders_on_hold && 'carta-della-cultura' === $order->get_payment_method() ) {
-
-			if ( in_array( $order->get_status(), array( 'on-hold', 'pending' ), true ) ) {
-
-				/* Recupero il messaggio personalizzato salvato nelle impostazioni */
-				$message = get_option( 'wccdc-email-order-received' );
-
-				if ( ! $message ) {
-
-					$message = __( 'L\'ordine verrà completato manualmente nei prossimi giorni e, contestualmente, verrà validato il buono Carta della Cultura inserito. Riceverai una notifica email di conferma, grazie!', 'wc-carta-della-cultura' );
-
-				}
-
-				echo wp_kses_post( "<p>$message</p>", 'wc-carta-della-cultura' );
-
-			} elseif ( 'failed' === $order->get_status() ) {
-
-				/* Recupero il messaggio personalizzato salvato nelle impostazioni */
-				$message = get_option( 'wccdc-email-order-failed' );
-				$message = str_replace( '[checkout-url]', '%s', $message );
-
-				if ( ! $message ) {
-
-					/* Translators: URL per completare il pagamento */
-					$message = __( 'La validazone del buono Carta della Cultura ha restituito un errore e non è stato possibile completare l\'ordine, completa il pagamento a <a href="%s">questo indirizzo</a>.', 'wc-carta-della-cultura' );
-
-				}
-
-				echo wp_kses_post( sprintf( "<p>$message</p>", do_shortcode( '[checkout-url order-id=' . $order->get_id() . ']' ) ) );
-
-			}
-		}
-
-	}
-
-	/**
-	 * Ricava il coupon id dal suo codice
-	 *
-	 * @param string $coupon_code il codice del coupon.
-	 *
-	 * @return int l'id del coupon
-	 */
-	private static function get_coupon_id( $coupon_code ) {
-
-		$coupon = get_page_by_title( $coupon_code, OBJECT, 'shop_coupon' );
-
-		if ( $coupon && isset( $coupon->ID ) ) {
-
-			return $coupon->ID;
-
-		}
-
-	}
-
-	/**
-	 * Crea un nuovo coupon
-	 *
-	 * @param int    $order_id     l'id dell'ordine.
-	 * @param float  $amount       il valore da assegnare al coupon.
-	 * @param string $teacher_code il codice del buono Carta della Cultura.
-	 *
-	 * @return int l'id del coupon creato
-	 */
-	private static function create_coupon( $order_id, $amount, $teacher_code ) {
-
-		$coupon_code = 'wccdc-' . $order_id . '-' . $teacher_code;
-
-		$args = array(
-			'post_title'   => $coupon_code,
-			'post_content' => '',
-			'post_excerpt' => $teacher_code,
-			'post_type'    => 'shop_coupon',
-			'post_status'  => 'publish',
-			'post_author'  => 1,
-			'meta_input'   => array(
-				'discount_type' => 'fixed_cart',
-				'coupon_amount' => $amount,
-				'usage_limit'   => 1,
-			),
-		);
-
-		$coupon_id = self::get_coupon_id( $coupon_code );
-
-		/* Aggiorna coupon se già presente */
-		if ( $coupon_id ) {
-
-			$args['ID'] = $coupon_id;
-			$coupon_id  = wp_update_post( $args );
-
-		} else {
-
-			$coupon_id = wp_insert_post( $args );
-
-		}
-
-		if ( ! is_wp_error( $coupon_id ) ) {
-
-			return $coupon_code;
 
 		}
 
@@ -492,20 +222,18 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 	 * Processa il buono Carta della Cultura inserito
 	 *
 	 * @param int    $order_id     l'id dell'ordine.
-	 * @param string $teacher_code il buono Carta della Cultura.
+	 * @param string $wccdc_code il buono Carta della Cultura.
 	 * @param float  $import       il totale dell'ordine o il valore del coupon.
-	 * @param bool   $converted    se valorizzato il metodo viene utilizzato nella validazione del coupon - process_coupon().
-	 * @param bool   $complete     se valorizzato il metodo viene utilizzato per il completamento manuale di un ordine.
 	 *
 	 * @return mixed string in caso di errore, 1 in alternativa
 	 */
-	public static function process_code( $order_id, $teacher_code, $import, $converted = false, $complete = false ) {
+	public static function process_code( $order_id, $wccdc_code, $import, $converted = false, $complete = false ) {
 
 		global $woocommerce;
 
 		$output      = 1;
 		$order       = wc_get_order( $order_id );
-		$soap_client = new WCCDC_Soap_Client( $teacher_code, $import );
+		$soap_client = new WCCDC_Soap_Client( $wccdc_code, $import );
 
 		try {
 
@@ -513,17 +241,10 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 			$response      = $soap_client->check();
 			$bene          = $response->checkResp->ambito; // Il bene acquistabile con il buono inserito.
 			$importo_buono = floatval( $response->checkResp->importo ); // L'importo del buono inserito.
-			$on_hold       = self::$orders_on_hold && ! $complete;
 			$operation     = null;
 
 			/*Verifica se i prodotti dell'ordine sono compatibili con i beni acquistabili con il buono*/
 			$purchasable = self::is_purchasable( $order, $bene );
-
-			/* Importo inferiore al totale dell'ordine */
-			$convert = self::$coupon_option && $importo_buono < $import ? true : false;
-
-			/* Spese di spedizione escluse dal pagamento */
-			$no_shipping = self::$exclude_shipping && $order->get_shipping_total() ? true : false;
 
 			if ( ! $purchasable ) {
 
@@ -531,80 +252,30 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 			} else {
 
-				$type = null;
+				try {
 
-				if ( ! $converted && $convert || $no_shipping ) {
+					/* Validazione buono */
+					$operation = $soap_client->confirm();
 
-					if ( $no_shipping ) {
+					if ( is_object( $operation ) && 'OK' === $operation->checkResp->esito ) {
 
-						/* Definizione del valore del vouscher con spese di spedizione escluse */
-						$importo_buono = min( $importo_buono, $import );
+						/*Aggiungo il buono docente all'ordine*/
+						$order->update_meta_data( 'wc-codice-docente', $teacher_code );
 
+						/* Ordine completato */
+						$order->payment_complete();
+
+						/*Svuota carrello*/
+						$woocommerce->cart->empty_cart();
+
+					} else {
+
+						$output = $operation->checkResp->esito;
 					}
+				} catch ( Exception $e ) {
 
-					/* Creazione coupon */
-					$coupon_code = self::create_coupon( $order_id, $importo_buono, $teacher_code );
+					$output = $e->detail->FaultVoucher->exceptionMessage;
 
-					if ( $coupon_code && ! WC()->cart->has_discount( $coupon_code ) ) {
-
-						/* Coupon aggiunto all'ordine */
-						WC()->cart->apply_coupon( $coupon_code );
-
-						if ( $convert ) {
-
-							$output = __( 'Il valore del buono inserito non è sufficiente ed è stato convertito in buono sconto.', 'wc-carta-della-cultura' );
-						} else {
-
-							$output = __( 'Le spese di spedizione devono essere saldate con altro metodo di pagamento.', 'wc-carta-della-cultura' );
-						}
-					}
-				} else {
-
-					try {
-
-						if ( ! $on_hold ) {
-
-							/*Validazione buono*/
-							$operation = $soap_client->confirm();
-
-						}
-
-						if ( ( is_object( $operation ) && 'OK' === $operation->checkResp->esito ) || $on_hold ) {
-
-							/*Aggiungo il buono Carta della Cultura all'ordine*/
-							$order->update_meta_data( 'wc-codice-carta-della-cultura', $teacher_code );
-
-							if ( ! $converted ) {
-
-								if ( $on_hold ) {
-
-									/* Ordine in sospeso */
-									$order->update_status( 'wc-on-hold' );
-
-								} else {
-
-									/* Ordine completato */
-									$order->payment_complete();
-
-								}
-
-								/* A completamento di un ordine il carrello è già vuoto */
-								if ( ! $complete ) {
-
-									/*Svuota carrello*/
-									$woocommerce->cart->empty_cart();
-
-								}
-							}
-						} else {
-
-							$output = $operation->checkResp->esito;
-						}
-					} catch ( Exception $e ) {
-
-						$output = $e->detail->FaultVoucher->exceptionMessage;
-
-					}
 				}
 			}
 		} catch ( Exception $e ) {
@@ -628,13 +299,6 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 
 		$order  = wc_get_order( $order_id );
 		$import = floatval( $order->get_total() );
-
-		if ( self::$exclude_shipping ) {
-
-			$import = floatval( $order->get_total() - $order->get_shipping_total() - $order->get_shipping_tax() ); // Il totale dell'ordine.
-
-		}
-
 		$notice = null;
 		$output = array(
 			'result'   => 'failure',
@@ -642,11 +306,11 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 		);
 
 		$data         = $this->get_post_data();
-		$teacher_code = $data['wc-codice-carta-della-cultura']; // Il buono inserito dall'utente.
+		$wccdc_code = $data['wc-codice-carta-della-cultura']; // Il buono inserito dall'utente.
 
-		if ( $teacher_code ) {
+		if ( $wccdc_code ) {
 
-			$notice = self::process_code( $order_id, $teacher_code, $import );
+			$notice = self::process_code( $order_id, $wccdc_code, $import );
 
 			if ( 1 === intval( $notice ) ) {
 
