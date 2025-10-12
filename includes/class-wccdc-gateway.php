@@ -259,7 +259,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 
 					if ( is_object( $operation ) && 'OK' === $operation->checkResp->esito ) {
 
-						/*Aggiungo il buono docente all'ordine*/
+						/*Aggiungo il buono all'ordine*/
 						$order->update_meta_data( 'wc-codice-carta-della-cultura', $wccdc_code );
 
 						/* Ordine completato */
