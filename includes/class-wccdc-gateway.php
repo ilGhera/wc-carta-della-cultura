@@ -49,7 +49,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 		$this->id                 = 'carta-della-cultura';
 		$this->has_fields         = true;
 		$this->method_title       = 'Carta della Cultura';
-		$this->method_description = 'Consente ai docenti di utilizzare il buono a loro riservato per l\'acquisto di materiale didattico.';
+		$this->method_description = 'Consente l\'utilizzo dei buoni Carta della Cultura previsti dallo Stato Italiano';
 
 		self::$coupon_option    = get_option( 'wccdc-coupon' );
 		self::$orders_on_hold   = get_option( 'wccdc-orders-on-hold' );
