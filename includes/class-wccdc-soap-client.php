@@ -89,7 +89,7 @@ class WCCDC_Soap_Client {
 			$this->passphrase = $this->get_user_passphrase();
 		}
 
-		$this->wsdl           = WCCDC_INCLUDES_URI . 'VerificaVoucher.wsdl';
+		$this->wsdl           = WCCDC_INCLUDES . 'VerificaVoucher.wsdl';
 		$this->codice_voucher = $codice_voucher;
 		$this->import         = $import;
 

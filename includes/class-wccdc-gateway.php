@@ -11,11 +11,11 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * WCCDC_Teacher_Gateway class
+ * WCCDC_Gateway class
  *
  * @since 1.4.6
  */
-class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
+class WCCDC_Gateway extends WC_Payment_Gateway {
 
 	/**
 	 * The constructor
@@ -260,7 +260,7 @@ class WCCDC_Teacher_Gateway extends WC_Payment_Gateway {
 					if ( is_object( $operation ) && 'OK' === $operation->checkResp->esito ) {
 
 						/*Aggiungo il buono docente all'ordine*/
-						$order->update_meta_data( 'wc-codice-docente', $teacher_code );
+						$order->update_meta_data( 'wc-codice-carta-della-cultura', $wccdc_code );
 
 						/* Ordine completato */
 						$order->payment_complete();

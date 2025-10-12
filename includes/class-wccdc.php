@@ -58,7 +58,7 @@ class WCCDC {
 
         if ( $sandbox || ( wccdc_admin::get_the_file( '.pem' ) && get_option( 'wccdc-cert-activation' ) ) ) {
 
-            $methods[] = 'WCCDC_Teacher_Gateway';
+            $methods[] = 'WCCDC_Gateway';
 
         }
 
