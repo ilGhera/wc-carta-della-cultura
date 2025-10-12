@@ -1,4 +1,4 @@
-=== ilGhera Carta della Cultura for WooCommerce - Premium ===
+=== ilGhera Carta della Cultura for WooCommerce ===
 Contributors: ghera74
 Tags: Woocommerce, e-commerce, shop, orders, payment, payment gateway, payment method, 
 Version: 0.9.0
@@ -47,8 +47,8 @@ This plugin sends data to an external service, like the categories and the price
 
 * Caricamento certificato (.pem)
 * Impostazione categorie prodotti WooCommerce acquistabili
-* Generazione richiesta certificato (.der)
-* Generazione certificato (.pem)
+* Generazione richiesta certificato (.der) (Premium)
+* Generazione certificato (.pem) (Premium)
 
 
 == Installation ==

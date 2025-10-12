@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin name: ilGhera Carta della Cultura for WooCommerce - Premium
+ * Plugin name: ilGhera Carta della Cultura for WooCommerce
  * Plugin URI: https://www.ilghera.com/product/carta-della-cultura-for-wc-premium/
  * Description: Abilita in WooCommerce il pagamento con Carta della Cultura prevista dallo stato Italiano.
  * Author: ilGhera
@@ -25,13 +25,6 @@ defined( 'ABSPATH' ) || exit;
  * Attivazione
  */
 function wccdc_premium_activation() {
-
-	/*Se presente, disattiva la versione free del plugin*/
-	if ( function_exists( 'wccdc_activation' ) ) {
-		deactivate_plugins( 'wc-carta-della-cultura/wc-carta-della-cultura.php' );
-		remove_action( 'plugins_loaded', 'wccdc_activation' );
-		wp_safe_redirect( admin_url( 'plugins.php?plugin_status=all&paged=1&s' ) );
-	}
 
 	/*WooCommerce è presente e attivo?*/
 	if ( ! class_exists( 'WC_Payment_Gateway' ) ) {
@@ -68,15 +61,6 @@ function wccdc_premium_activation() {
 	 */
 	function wccdc_load_scripts() {
 		wp_enqueue_style( 'wccdc-style', WCCDC_URI . 'css/wc-carta-della-cultura.css', array(), WCCDC_VERSION );
-		wp_enqueue_script( 'wccdc-scripts', WCCDC_URI . 'js/wc-carta-della-cultura.js', array(), WCCDC_VERSION, false );
-		wp_localize_script(
-			'wccdc-scripts',
-			'wccdcOptions',
-			array(
-				'ajaxURL'          => admin_url( 'admin-ajax.php' ),
-				'couponConversion' => get_option( 'wccdc-coupon' ),
-			)
-		);
 	}
 
 	/**
@@ -134,82 +118,4 @@ add_action(
 		}
 	}
 );
-
-
-/**
- * Update checker
- */
-require plugin_dir_path( __FILE__ ) . 'plugin-update-checker/plugin-update-checker.php';
-use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
-$wccdc_update_checker = PucFactory::buildUpdateChecker(
-	'https://www.ilghera.com/wp-update-server-2/?action=get_metadata&slug=wc-carta-della-cultura-premium',
-	__FILE__,
-	'wc-carta-della-cultura-premium'
-);
-
-$wccdc_update_checker->addQueryArgFilter( 'wccdc_secure_update_check' );
-
-/**
- * PUC Secure update check
- *
- * @param array $query_args the parameters.
- *
- * @return array
- */
-function wccdc_secure_update_check( $query_args ) {
-	$key = base64_encode( get_option( 'wccdc-premium-key' ) );
-
-	if ( $key ) {
-		$query_args['premium-key'] = $key;
-	}
-	return $query_args;
-}
-
-
-/**
- * Avvisi utente in fase di aggiornaemnto plugin
- *
- * @param array  $plugin_data the plugin metadata.
- * @param object $response    metadata about the available plugin update.
- *
- * @return void
- */
-function wccdc_update_message( $plugin_data, $response ) {
-
-	$message = null;
-	$key     = get_option( 'wccdc-premium-key' );
-
-	$message = null;
-
-	if ( ! $key ) {
-
-		/* Translators: the admin URL */
-		$message = sprintf( __( 'Per ricevere aggiornamenti devi inserire la tua <b>Premium Key</b> nelle <a href="%sadmin.php/?page=wccdc-settings">impostazioni del plugin</a>. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wc-carta-della-cultura' ), admin_url() );
-
-	} else {
-
-		$decoded_key = explode( '|', base64_decode( $key ) );
-		$bought_date = date( 'd-m-Y', strtotime( $decoded_key[1] ) );
-		$limit       = strtotime( $bought_date . ' + 365 day' );
-		$now         = strtotime( 'today' );
-
-		if ( $limit < $now ) {
-			$message = __( 'Sembra che la tua <strong>Premium Key</strong> sia scaduta. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wc-carta-della-cultura' );
-		} elseif ( 3518 !== intval( $decoded_key[2] ) ) {
-			$message = __( 'Sembra che la tua <strong>Premium Key</strong> non sia valida. Clicca <a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank">qui</a> per maggiori informazioni.', 'wc-carta-della-cultura' );
-		}
-	}
-
-	$allowed = array(
-		'b' => array(),
-		'a' => array(
-			'href'   => array(),
-			'target' => array(),
-		),
-	);
-
-	echo ( $message ) ? '<br><span class="wccdc-alert">' . wp_kses( $message, $allowed ) . '</span>' : '';
-
-}
-add_action( 'in_plugin_update_message-wc-carta-della-cultura-premium/wc-carta-della-cultura.php', 'wccdc_update_message', 10, 2 );
 
