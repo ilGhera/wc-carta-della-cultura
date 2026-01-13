@@ -12,6 +12,7 @@ var wccdcController = function() {
 	self.onLoad = function() {
 
         self.checkForCoupon();
+        self.updateOnCouponApplied();
 
     }
 
