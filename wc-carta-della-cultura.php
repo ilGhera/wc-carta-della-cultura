@@ -61,6 +61,15 @@ function wccdc_premium_activation() {
 	require WCCDC_INCLUDES . 'class-wccdc.php';
 	require WCCDC_INCLUDES . 'ilghera-notice/class-ilghera-notice.php';
 
+	Ilghera_Notice::get_instance()->add_product(
+		array(
+			'name'   => 'ilGhera Carta della Cultura for WooCommerce - Premium',
+			'slug'   => 'woocommerce-carta-della-cultura-premium',
+			'sign'   => 'wccdc',
+			'domain' => 'wc-carta-della-cultura',
+		)
+	);
+
 	/**
 	 * Script e folgi di stile front-end
 	 *
