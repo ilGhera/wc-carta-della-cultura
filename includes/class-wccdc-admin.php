@@ -104,16 +104,7 @@ class WCCDC_Admin {
 	 * @return string
 	 */
 	public function get_bene_lable( $beni, $bene_slug ) {
-
-		foreach ( $beni as $bene ) {
-
-			if ( sanitize_title( $bene ) === $bene_slug ) {
-
-				return $bene;
-
-			}
-		}
-
+		return 'Libri'; // Sempre "Libri"
 	}
 
 	/**
@@ -129,25 +120,8 @@ class WCCDC_Admin {
 
 		echo '<li class="setup-cat cat-' . esc_attr( $n ) . '">';
 
-			/*L'elenco dei beni dei vari ambiti previsti dalla piattaforma*/
-			$beni_index = array(
-				'Libri',
-			);
-
-			$beni       = array_map( 'sanitize_title', $beni_index );
 			$terms      = get_terms( 'product_cat' );
-			$bene_value = is_array( $data ) ? key( $data ) : '';
-			$term_value = $bene_value ? $data[ $bene_value ] : '';
-
-			echo '<select name="wccdc-beni-' . esc_attr( $n ) . '" class="wccdc-field beni">';
-				echo '<option value="">Bene Carta della Cultura</option>';
-
-			foreach ( $beni as $bene ) {
-
-				echo '<option value="' . esc_attr( $bene ) . '"' . ( $bene === $bene_value ? ' selected="selected"' : '' ) . '>' . esc_html( $this->get_bene_lable( $beni_index, $bene ) ) . '</option>';
-
-			}
-			echo '</select>';
+			$term_value = is_array( $data ) && isset( $data['libri'] ) ? $data['libri'] : '';
 
 			echo '<select name="wccdc-categories-' . esc_attr( $n ) . '" class="wccdc-field categories">';
 				echo '<option value="">Categoria WooCommerce</option>';
@@ -156,6 +130,9 @@ class WCCDC_Admin {
 				echo '<option value="' . esc_attr( $term->term_id ) . '"' . ( intval( $term_value ) === $term->term_id ? ' selected="selected"' : '' ) . '>' . esc_html( $term->name ) . '</option>';
 			}
 			echo '</select>';
+
+			// Campo nascosto per salvare automaticamente il bene "libri"
+			echo '<input type="hidden" name="wccdc-beni-' . esc_attr( $n ) . '" value="libri">';
 
 			if ( 1 === intval( $n ) ) {
 
@@ -856,13 +833,11 @@ class WCCDC_Admin {
 
 				for ( $i = 1; $i <= $tot; $i++ ) {
 
-					$bene = isset( $_POST[ 'wccdc-beni-' . $i ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'wccdc-beni-' . $i ] ) ) : '';
+					$bene = 'libri'; // Sempre "libri" poiché è l'unico bene consentito
 					$cat  = isset( $_POST[ 'wccdc-categories-' . $i ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'wccdc-categories-' . $i ] ) ) : '';
 
-					if ( $bene && $cat ) {
-
+					if ( $cat ) {
 						$wccdc_categories[] = array( $bene => $cat );
-
 					}
 				}
 
