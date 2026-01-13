@@ -40,16 +40,19 @@ var wccdc_add_cat = function() {
 		$('.add-cat-hover.wccdc').on('click', function(){
 			var number = $('.setup-cat').length + 1;
 
-			/*Beni già impostati da escludere*/
-			var beni_values = [];
-			$('.wccdc-field.beni').each(function(){
-				beni_values.push($(this).val());
+			/*Categorie già selezionate da escludere*/
+			var selected_categories = [];
+			$('.wccdc-field.categories').each(function(){
+				var cat_id = $(this).val();
+				if (cat_id) {
+					selected_categories.push(cat_id);
+				}
 			})
 
 			var data = {
 				'action': 'wccdc-add-cat',
 				'number': number,
-				'exclude-beni': beni_values.toString(),
+				'exclude-categories': selected_categories,
                 'add-cat-nonce': wccdcData.addCatNonce,
 			}
 			$.post(ajaxurl, data, function(response){
