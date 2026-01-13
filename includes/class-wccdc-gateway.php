@@ -438,8 +438,6 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 			$importo_buono = floatval( $response->checkResp->importo ); // L'importo del buono inserito.
 			$on_hold       = self::$orders_on_hold && ! $complete;
 			$operation     = null;
-            error_log( 'RESPONSE: ' . print_r( $response->checkResp, true ) );
-            return;
 
 			// Controllo di sicurezza: il buono non deve superare 100€
 			if ( $importo_buono > 100.00 ) {
