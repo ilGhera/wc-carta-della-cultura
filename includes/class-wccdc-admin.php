@@ -624,7 +624,7 @@ class WCCDC_Admin {
 
 									echo '</ul>';
 									echo '<input type="hidden" name="wccdc-tot-cats" class="wccdc-tot-cats" value="' . ( is_array( $categories ) ? esc_attr( count( $categories ) ) : 1 ) . '">';
-									echo '<p class="description">' . esc_html__( 'Seleziona le categorie di prodotti corrispondenti ai beni acquistabili.', 'wc-carta-della-cultura' ) . '</p>';
+									echo '<p class="description">' . esc_html__( 'Seleziona le categorie di prodotti corrispondenti ai libri acquistabili con Carta della Cultura.', 'wc-carta-della-cultura' ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
