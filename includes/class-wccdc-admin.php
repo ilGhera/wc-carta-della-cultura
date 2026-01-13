@@ -110,23 +110,36 @@ class WCCDC_Admin {
 	/**
 	 * Categoria per la verifica in fase di checkout
 	 *
-	 * @param  int   $n             il numero dell'elemento aggiunto.
-	 * @param  array $data          bene e categoria come chiave e velore.
-	 * @param  array $exclude_beni  buoni già abbinati a categorie WC (al momento non utilizzato).
+	 * @param  int   $n               il numero dell'elemento aggiunto.
+	 * @param  array $data            bene e categoria come chiave e valore.
+	 * @param  array $exclude_beni    buoni già abbinati a categorie WC (al momento non utilizzato).
+	 * @param  array $exclude_categories categorie già selezionate da escludere.
 	 *
 	 * @return mixed
 	 */
-	public function setup_cat( $n, $data = null, $exclude_beni = null ) {
+	public function setup_cat( $n, $data = null, $exclude_beni = null, $exclude_categories = null ) {
 
 		echo '<li class="setup-cat cat-' . esc_attr( $n ) . '">';
 
 			$terms      = get_terms( 'product_cat' );
 			$term_value = is_array( $data ) && isset( $data['libri'] ) ? $data['libri'] : '';
 
+			// Se $exclude_categories non è fornito, calcolalo dalle categorie già selezionate nella pagina
+			if ( $exclude_categories === null ) {
+				$exclude_categories = array();
+				// Non possiamo accedere alle altre dropdown direttamente qui, quindi questo sarà gestito via JavaScript
+				// Ma per coerenza manteniamo il parametro
+			}
+
 			echo '<select name="wccdc-categories-' . esc_attr( $n ) . '" class="wccdc-field categories">';
 				echo '<option value="">Categoria WooCommerce</option>';
 
 			foreach ( $terms as $term ) {
+				// Escludi categorie già selezionate se specificato
+				if ( is_array( $exclude_categories ) && in_array( $term->term_id, $exclude_categories ) ) {
+					continue;
+				}
+				
 				echo '<option value="' . esc_attr( $term->term_id ) . '"' . ( intval( $term_value ) === $term->term_id ? ' selected="selected"' : '' ) . '>' . esc_html( $term->name ) . '</option>';
 			}
 			echo '</select>';
@@ -162,12 +175,13 @@ class WCCDC_Admin {
 
 		if ( isset( $_POST['add-cat-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['add-cat-nonce'] ) ), 'wccdc-add-cat-nonce' ) ) {
 
-			$number       = isset( $_POST['number'] ) ? sanitize_text_field( wp_unslash( $_POST['number'] ) ) : '';
-			$exclude_beni = isset( $_POST['exclude-beni'] ) ? sanitize_text_field( wp_unslash( $_POST['exclude-beni'] ) ) : '';
+			$number             = isset( $_POST['number'] ) ? sanitize_text_field( wp_unslash( $_POST['number'] ) ) : '';
+			$exclude_beni       = isset( $_POST['exclude-beni'] ) ? sanitize_text_field( wp_unslash( $_POST['exclude-beni'] ) ) : '';
+			$exclude_categories = isset( $_POST['exclude-categories'] ) ? array_map( 'intval', (array) $_POST['exclude-categories'] ) : array();
 
 			if ( $number ) {
 
-				$this->setup_cat( $number, null, $exclude_beni );
+				$this->setup_cat( $number, null, $exclude_beni, $exclude_categories );
 
 			}
 		}
@@ -830,6 +844,7 @@ class WCCDC_Admin {
 				$tot = $tot ? $tot : 1;
 
 				$wccdc_categories = array();
+				$used_cat_ids = array(); // Per tracciare le categorie già utilizzate e prevenire duplicati
 
 				// Conta quanti campi categorie sono stati inviati
 				$max_index = 0;
@@ -849,6 +864,12 @@ class WCCDC_Admin {
 					$cat  = isset( $_POST[ 'wccdc-categories-' . $i ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'wccdc-categories-' . $i ] ) ) : '';
 
 					if ( $cat ) {
+						// Controlla se la categoria è già stata utilizzata
+						if ( in_array( $cat, $used_cat_ids ) ) {
+							// Salta questa categoria duplicata
+							continue;
+						}
+						$used_cat_ids[] = $cat;
 						$wccdc_categories[] = array( $bene => $cat );
 					}
 				}
