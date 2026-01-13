@@ -640,7 +640,7 @@ class WCCDC_Admin {
 								echo '<th scope="row">' . esc_html__( 'Controllo prodotti', 'wc-carta-della-cultura' ) . '</th>';
 								echo '<td>';
 										echo '<input type="checkbox" name="wccdc-items-check" value="1"' . ( 1 === intval( $wccdc_items_check ) ? ' checked="checked"' : '' ) . '>';
-									echo '<p class="description">' . wp_kses_post( __( 'Mostra il metodo di pagamento solo se il/ i prodotti a carrello sono acquistabili con buoni <i>Carta della Cultura</i>.<br>Più prodotti dovranno prevedere l\'uso di buoni dello stesso ambito di utilizzo.', 'wc-carta-della-cultura' ) ) . '</p>';
+									echo '<p class="description">' . wp_kses_post( __( 'Mostra il metodo di pagamento solo se il/ i prodotti a carrello sono acquistabili con buoni <i>Carta della Cultura</i>.', 'wc-carta-della-cultura' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
