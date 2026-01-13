@@ -831,7 +831,19 @@ class WCCDC_Admin {
 
 				$wccdc_categories = array();
 
-				for ( $i = 1; $i <= $tot; $i++ ) {
+				// Conta quanti campi categorie sono stati inviati
+				$max_index = 0;
+				foreach ($_POST as $key => $value) {
+					if (strpos($key, 'wccdc-categories-') === 0) {
+						$index = intval(str_replace('wccdc-categories-', '', $key));
+						if ($index > $max_index) {
+							$max_index = $index;
+						}
+					}
+				}
+
+				// Processa tutti i campi categorie trovati
+				for ( $i = 1; $i <= $max_index; $i++ ) {
 
 					$bene = 'libri'; // Sempre "libri" poiché è l'unico bene consentito
 					$cat  = isset( $_POST[ 'wccdc-categories-' . $i ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'wccdc-categories-' . $i ] ) ) : '';
