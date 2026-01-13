@@ -131,14 +131,7 @@ class WCCDC_Admin {
 
 			/*L'elenco dei beni dei vari ambiti previsti dalla piattaforma*/
 			$beni_index = array(
-				'Libri e testi (anche in formato digitale)',
-				'Hardware e software',
-				'Formazione e aggiornamento',
-				'Teatro',
-				'Cinema',
-				'Mostre ed eventi culturali',
-				'Spettacoli dal vivo',
-				'Musei',
+				'Libri',
 			);
 
 			$beni       = array_map( 'sanitize_title', $beni_index );
