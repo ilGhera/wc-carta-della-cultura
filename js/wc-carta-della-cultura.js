@@ -49,6 +49,45 @@ var wccdcController = function() {
             
     }
 
+    /**
+     * Aggiorna il riepilogo ordine quando viene applicato un coupon Carta della Cultura
+     */
+    self.updateOnCouponApplied = function() {
+        
+        jQuery(document).ready(function($){
+            
+            // 1. Ascolta l'evento standard di WooCommerce per coupon applicati
+            $(document.body).on('applied_coupon', function(e, coupon_code) {
+                
+                // Controlla se è un coupon Carta della Cultura (inizia con 'wccdc-')
+                if (coupon_code && coupon_code.indexOf('wccdc-') === 0) {
+                    
+                    // Piccolo delay per permettere a WooCommerce di processare il coupon
+                    setTimeout(function() {
+                        // Forza l'aggiornamento del riepilogo ordine
+                        $('body').trigger('update_checkout');
+                    }, 300);
+                }
+            });
+            
+            // 2. Backup: aggiorna dopo il submit del form di pagamento
+            $(document).on('click', '#place_order', function() {
+                
+                // Controlla se il metodo di pagamento è Carta della Cultura
+                var paymentMethod = $('input[name="payment_method"]:checked').val();
+                
+                if (paymentMethod === 'carta-della-cultura') {
+                    // Aspetta che il processo PHP sia completato
+                    setTimeout(function() {
+                        $('body').trigger('update_checkout');
+                    }, 800);
+                }
+            });
+                
+        });
+            
+    }
+
 }
 
 /**
