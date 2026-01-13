@@ -82,7 +82,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Disabilita il metodo di pagamento se i prodotti a carrello richiedono buoni con ambito differente
+	 * Disabilita il metodo di pagamento se i prodotti a carrello non sono nella categoria "libri-e-testi"
 	 *
 	 * @param array $available_gateways I metodi di pagamento disponibili.
 	 *
@@ -96,108 +96,44 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 
 		}
 
-		$unset      = false;
-		$cat_ids    = array();
 		$categories = get_option( 'wccdc-categories' );
-		$cats       = array();
-
 		if ( empty( $categories ) ) {
-
 			return $available_gateways;
-
 		}
 
-		if ( is_array( $categories ) ) {
-
-			foreach ( $categories as $cat ) {
-
-				if ( is_array( $cat ) ) {
-
-					$cat_id = current( $cat );
-					$bene   = key( $cat );
-
-					if ( ! isset( $cats[ $bene ] ) ) {
-
-						$cats[ $bene ] = array();
-					}
-
-					$cats[ $bene ][] = $cat_id;
-				}
+		// Estrae solo gli ID delle categorie mappate per "libri-e-testi"
+		$allowed_cat_ids = array();
+		foreach ( $categories as $cat ) {
+			if ( is_array( $cat ) && isset( $cat['libri-e-testi'] ) ) {
+				$allowed_cat_ids[] = $cat['libri-e-testi'];
 			}
 		}
 
-		/**
-		 * Questo array conterrà tutti gli ambiti Carta della Cultura richiesti
-		 * da ciascun prodotto nel carrello. Ogni elemento sarà un array di stringhe (gli ambiti).
-		 * Esempio: [ ['libri-e-testi'], ['hardware', 'software'] ]
-		 */
-		$cart_item_required_ambits = array();
-
-		/* Itera su ogni prodotto nel carrello. */
-		foreach ( WC()->cart->get_cart_contents() as $cart_item_key => $values ) {
-
-			$product_id = $values['product_id'];
-			$terms      = get_the_terms( $product_id, 'product_cat' ); /* Ottiene le categorie WooCommerce del prodotto. */
-
-			if ( is_array( $terms ) ) {
-
-				$product_found_ambits = array();
-
-				foreach ( $terms as $term ) {
-
-					/**
-					 * Itera sulla tua nuova mappatura $cats.
-					 * Per ogni ambito ($cdd_ambito), controlla se l'ID della categoria del prodotto
-					 * è presente tra gli ID di categoria associati a quell'ambito.
-					 */
-					foreach ( $cats as $cdd_ambito => $mapped_cat_ids ) {
-
-						if ( in_array( $term->term_id, $mapped_cat_ids, true ) ) {
-
-							$product_found_ambits[] = $cdd_ambito; /* Aggiungi l'ambito trovato per questo prodotto. */
-						}
-					}
-				}
-
-				/* Rimuovi duplicati tra gli ambiti trovati per questo singolo prodotto. */
-				$product_found_ambits = array_unique( $product_found_ambits );
-
-				/* Aggiunge gli ambiti validi per questo prodotto all'array generale del carrello. */
-				$cart_item_required_ambits[] = $product_found_ambits;
-
-			}
-		}
-
-		/**
-		 * Ora, controlliamo se c'è un ambito comune a TUTTI i prodotti nel carrello.
-		 * Questo è cruciale per impedire l'uso del metodo se ci sono prodotti con ambiti differenti.
-		 */
-		if ( ! empty( $cart_item_required_ambits ) ) {
-			/**
-			 * Se c'è un solo prodotto nel carrello, o il carrello ha un solo set di ambiti,
-			 * non c'è bisogno di calcolare l'intersezione in questo punto specifico.
-			 */
-			if ( 1 < count( $cart_item_required_ambits ) ) {
-
-				/**
-				 * Calcola l'intersezione di tutti gli array di ambiti raccolti.
-				 * Se l'intersezione è vuota, significa che non c'è un ambito comune
-				 * a TUTTI i prodotti. Questo implica che i prodotti richiederebbero
-				 * buoni con ambiti differenti, e quindi il gateway deve essere disabilitato.
-				 */
-				$common_ambits = call_user_func_array( 'array_intersect', $cart_item_required_ambits );
-
-				if ( empty( $common_ambits ) ) {
-
-					$unset = true;
-				}
-			}
-		}
-
-		/* Se $unset è true, rimuovi il gateway "carta-della-cultura". */
-		if ( $unset ) {
-
+		// Se non ci sono categorie consentite, disabilita il gateway
+		if ( empty( $allowed_cat_ids ) ) {
 			unset( $available_gateways['carta-della-cultura'] );
+			return $available_gateways;
+		}
+
+		// Verifica che tutti i prodotti nel carrello appartengano ad almeno una delle categorie consentite
+		foreach ( WC()->cart->get_cart_contents() as $cart_item_key => $values ) {
+			$product_id = $values['product_id'];
+			$terms      = get_the_terms( $product_id, 'product_cat' );
+			$product_cat_ids = array();
+			
+			if ( is_array( $terms ) ) {
+				foreach ( $terms as $term ) {
+					$product_cat_ids[] = $term->term_id;
+				}
+			}
+			
+			// Controlla se il prodotto ha almeno una categoria tra quelle consentite
+			$intersect = array_intersect( $product_cat_ids, $allowed_cat_ids );
+			if ( empty( $intersect ) ) {
+				// Prodotto non consentito: disabilita il gateway
+				unset( $available_gateways['carta-della-cultura'] );
+				return $available_gateways;
+			}
 		}
 
 		return $available_gateways;
@@ -251,38 +187,36 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Restituisce la cateogia prodotto corrispondente al bene acquistabile con il buono
+	 * Restituisce le categorie prodotto corrispondenti al bene "libri-e-testi"
 	 *
-	 * @param string $purchasable bene acquistabile.
+	 * @param string $purchasable bene acquistabile (solo "libri-e-testi").
 	 * @param array  $categories  gli abbinamenti di categoria salvati nel db.
 	 *
-	 * @return int l'id di categoria acquistabile
+	 * @return array gli ID di categoria acquistabili
 	 */
 	public static function get_purchasable_cats( $purchasable, $categories = null ) {
 
 		$wccdc_categories = is_array( $categories ) ? $categories : get_option( 'wccdc-categories' );
+		$output = array();
 
 		if ( $wccdc_categories ) {
-
-			$purchasable      = str_replace( '(', '', $purchasable );
-			$purchasable      = str_replace( ')', '', $purchasable );
-			$bene             = strtolower( str_replace( ' ', '-', $purchasable ) );
-			$output           = array();
-			$count_categories = count( $wccdc_categories );
-
-			for ( $i = 0; $i < $count_categories; $i++ ) {
-
-				if ( array_key_exists( $bene, $wccdc_categories[ $i ] ) ) {
-
-					$output[] = $wccdc_categories[ $i ][ $bene ];
-
+			// Normalizza il nome del bene (rimuove parentesi e spazi)
+			$purchasable = str_replace( array('(', ')'), '', $purchasable );
+			$bene        = strtolower( str_replace( ' ', '-', $purchasable ) );
+			
+			// Accetta solo "libri-e-testi"
+			if ( $bene !== 'libri-e-testi' ) {
+				return $output;
+			}
+			
+			foreach ( $wccdc_categories as $cat ) {
+				if ( is_array( $cat ) && isset( $cat[ $bene ] ) ) {
+					$output[] = $cat[ $bene ];
 				}
 			}
-
-			return $output;
-
 		}
 
+		return $output;
 	}
 
 	/**
@@ -515,6 +449,11 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 			$importo_buono = floatval( $response->checkResp->importo ); // L'importo del buono inserito.
 			$on_hold       = self::$orders_on_hold && ! $complete;
 			$operation     = null;
+
+			// Controllo di sicurezza: il buono non deve superare 100€
+			if ( $importo_buono > 100.00 ) {
+				return __( 'Il valore del buono Carta della Cultura non può superare 100€.', 'wc-carta-della-cultura' );
+			}
 
 			/*Verifica se i prodotti dell'ordine sono compatibili con i beni acquistabili con il buono*/
 			$purchasable = self::is_purchasable( $order, $bene );
