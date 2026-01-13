@@ -82,7 +82,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Disabilita il metodo di pagamento se i prodotti a carrello non sono nella categoria "libri-e-testi"
+	 * Disabilita il metodo di pagamento se i prodotti a carrello non sono nella categoria "libri"
 	 *
 	 * @param array $available_gateways I metodi di pagamento disponibili.
 	 *
@@ -101,11 +101,11 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 			return $available_gateways;
 		}
 
-		// Estrae solo gli ID delle categorie mappate per "libri-e-testi"
+		// Estrae solo gli ID delle categorie mappate per "libri"
 		$allowed_cat_ids = array();
 		foreach ( $categories as $cat ) {
-			if ( is_array( $cat ) && isset( $cat['libri-e-testi'] ) ) {
-				$allowed_cat_ids[] = $cat['libri-e-testi'];
+			if ( is_array( $cat ) && isset( $cat['libri'] ) ) {
+				$allowed_cat_ids[] = $cat['libri'];
 			}
 		}
 
