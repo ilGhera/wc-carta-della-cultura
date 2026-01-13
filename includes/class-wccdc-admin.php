@@ -610,8 +610,11 @@ class WCCDC_Admin {
 				$exclude_for_this_dropdown = $all_selected_categories;
 				// Rimuovi la categoria corrente dall'esclusione (perché deve rimanere selezionata)
 				$current_cat = isset( $categories[ $i - 1 ]['libri'] ) ? $categories[ $i - 1 ]['libri'] : '';
-				if ( $current_cat && ( $key = array_search( $current_cat, $exclude_for_this_dropdown ) ) !== false ) {
-					unset( $exclude_for_this_dropdown[$key] );
+				if ( $current_cat ) {
+					$key = array_search( $current_cat, $exclude_for_this_dropdown );
+					if ( $key !== false ) {
+						unset( $exclude_for_this_dropdown[$key] );
+					}
 				}
 				
 				$this->setup_cat( $i, $categories[ $i - 1 ], null, $exclude_for_this_dropdown );
