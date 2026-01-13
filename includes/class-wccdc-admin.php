@@ -597,10 +597,24 @@ class WCCDC_Admin {
 
 		if ( $categories ) {
 
+			// Raccogli tutte le categorie già selezionate
+			$all_selected_categories = array();
+			foreach ( $categories as $cat_data ) {
+				if ( is_array( $cat_data ) && isset( $cat_data['libri'] ) ) {
+					$all_selected_categories[] = $cat_data['libri'];
+				}
+			}
+
 			for ( $i = 1; $i <= $tot_cats; $i++ ) {
-
-				$this->setup_cat( $i, $categories[ $i - 1 ] );
-
+				// Per ogni dropdown, escludi tutte le altre categorie selezionate
+				$exclude_for_this_dropdown = $all_selected_categories;
+				// Rimuovi la categoria corrente dall'esclusione (perché deve rimanere selezionata)
+				$current_cat = isset( $categories[ $i - 1 ]['libri'] ) ? $categories[ $i - 1 ]['libri'] : '';
+				if ( $current_cat && ( $key = array_search( $current_cat, $exclude_for_this_dropdown ) ) !== false ) {
+					unset( $exclude_for_this_dropdown[$key] );
+				}
+				
+				$this->setup_cat( $i, $categories[ $i - 1 ], null, $exclude_for_this_dropdown );
 			}
 		} else {
 
