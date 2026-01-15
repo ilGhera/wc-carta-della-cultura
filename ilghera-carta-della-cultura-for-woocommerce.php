@@ -8,9 +8,9 @@
  * Version: 0.9.0
  * Stable tag: 0.9.0
  * Requires at least: 4.0
- * Tested up to: 6.8
+ * Tested up to: 6.9
  * WC tested up to: 10
- * Text Domain: wc-carta-della-cultura
+ * Text Domain: ilghera-carta-della-cultura-for-woocommerce
  * Domain Path: /languages
  * Requires Plugins: woocommerce
  * License: GPLv3
