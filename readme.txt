@@ -4,7 +4,7 @@ Tags: Woocommerce, e-commerce, shop, orders, payment, payment gateway, payment m
 Version: 0.9.0
 Stable tag: 0.9.0
 Requires at least: 5.0
-Tested up to: 6.8
+Tested up to: 6.9
 WC tested up to: 10
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html

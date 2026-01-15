@@ -27,8 +27,8 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 		$this->plugin_id          = 'woocommerce_carta_della_cultura';
 		$this->id                 = 'carta-della-cultura';
 		$this->has_fields         = true;
-		$this->method_title       = __( 'Carta della Cultura', 'wc-carta-della-cultura' );
-		$this->method_description = __( 'Consente ai docenti di utilizzare il buono a loro riservato per l\'acquisto di materiale didattico.', 'wc-carta-della-cultura' );
+		$this->method_title       = __( 'Carta della Cultura', 'ilghera-carta-della-cultura-for-woocommerce' );
+		$this->method_description = __( 'Consente ai docenti di utilizzare il buono a loro riservato per l\'acquisto di materiale didattico.', 'ilghera-carta-della-cultura-for-woocommerce' );
 
 		if ( get_option( 'wccdc-image' ) ) {
 
@@ -61,14 +61,14 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 				'enabled'     => array(
 					'title'   => __( 'Enable/Disable', 'woocommerce' ),
 					'type'    => 'checkbox',
-					'label'   => __( 'Abilita pagamento con Carta della Cultura', 'wc-carta-della-cultura' ),
+					'label'   => __( 'Abilita pagamento con Carta della Cultura', 'ilghera-carta-della-cultura-for-woocommerce' ),
 					'default' => 'yes',
 				),
 				'title'       => array(
 					'title'       => __( 'Title', 'woocommerce' ),
 					'type'        => 'text',
-					'description' => __( 'This controls the title which the user sees during checkout.', 'wc-carta-della-cultura' ),
-					'default'     => __( 'Carta della Cultura', 'wc-carta-della-cultura' ),
+					'description' => __( 'This controls the title which the user sees during checkout.', 'ilghera-carta-della-cultura-for-woocommerce' ),
+					'default'     => __( 'Carta della Cultura', 'ilghera-carta-della-cultura-for-woocommerce' ),
 					'desc_tip'    => true,
 				),
 				'description' => array(
@@ -89,7 +89,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 		<p>
 			<?php echo wp_kses_post( $this->description ); ?>
 			<label for="wc-codice-carta-della-cultura">
-				<?php esc_html_e( 'Inserisci qui il tuo codice', 'wc-carta-della-cultura' ); ?>
+				<?php esc_html_e( 'Inserisci qui il tuo codice', 'ilghera-carta-della-cultura-for-woocommerce' ); ?>
 				<span class="required">*</span>
 			</label>
 			<input type="text" class="wc-codice-carta-della-cultura" id="wc-codice-carta-della-cultura" name="wc-codice-carta-della-cultura" />
@@ -199,7 +199,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 
 		if ( 'carta-della-cultura' === $data['payment_method'] ) {
 
-			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'wc-carta-della-cultura' ) . ': </strong>' . esc_html( $order->get_meta( 'wc-codice-carta-della-cultura' ) ) . '</p>';
+			echo '<p><strong>' . esc_html__( 'Carta della Cultura', 'ilghera-carta-della-cultura-for-woocommerce' ) . ': </strong>' . esc_html( $order->get_meta( 'wc-codice-carta-della-cultura' ) ) . '</p>';
 
 		}
 
@@ -232,7 +232,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 
 			// Controllo di sicurezza: il buono non deve superare 100€
 			if ( $importo_buono > 100.00 ) {
-				return __( 'Il valore del buono Carta della Cultura non può superare 100€.', 'wc-carta-della-cultura' );
+				return __( 'Il valore del buono Carta della Cultura non può superare 100€.', 'ilghera-carta-della-cultura-for-woocommerce' );
 			}
 
 			/*Verifica se i prodotti dell'ordine sono compatibili con i beni acquistabili con il buono*/
@@ -240,7 +240,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 
 			if ( ! $purchasable ) {
 
-				$output = __( 'Uno o più prodotti nel carrello non sono acquistabili con il buono inserito.', 'wc-carta-della-cultura' );
+				$output = __( 'Uno o più prodotti nel carrello non sono acquistabili con il buono inserito.', 'ilghera-carta-della-cultura-for-woocommerce' );
 
 			} else {
 
@@ -314,7 +314,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 			} else {
 
 				/* Translators: Notifica all'utente nella pagina di checkout */
-				wc_add_notice( sprintf( __( 'Carta della Cultura - %s', 'wc-carta-della-cultura' ), $notice ), 'error' );
+				wc_add_notice( sprintf( __( 'Carta della Cultura - %s', 'ilghera-carta-della-cultura-for-woocommerce' ), $notice ), 'error' );
 
 			}
 		}
