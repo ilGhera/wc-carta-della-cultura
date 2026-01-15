@@ -103,65 +103,48 @@ class WCCDC_Admin {
 	 * @return string
 	 */
 	public function get_bene_lable( $beni, $bene_slug ) {
-
-		foreach ( $beni as $bene ) {
-
-			if ( sanitize_title( $bene ) === $bene_slug ) {
-
-				return $bene;
-
-			}
-		}
-
+		return 'Libri'; // Sempre "Libri"
 	}
 
 	/**
 	 * Categoria per la verifica in fase di checkout
 	 *
-	 * @param  int   $n             il numero dell'elemento aggiunto.
-	 * @param  array $data          bene e categoria come chiave e velore.
-	 * @param  array $exclude_beni  buoni già abbinati a categorie WC (al momento non utilizzato).
+	 * @param  int   $n               il numero dell'elemento aggiunto.
+	 * @param  array $data            bene e categoria come chiave e valore.
+	 * @param  array $exclude_beni    buoni già abbinati a categorie WC (al momento non utilizzato).
+	 * @param  array $exclude_categories categorie già selezionate da escludere.
 	 *
 	 * @return mixed
 	 */
-	public function setup_cat( $n, $data = null, $exclude_beni = null ) {
+	public function setup_cat( $n, $data = null, $exclude_beni = null, $exclude_categories = null ) {
 
 		echo '<li class="setup-cat cat-' . esc_attr( $n ) . '">';
 
-			/*L'elenco dei beni dei vari ambiti previsti dalla piattaforma*/
-			$beni_index = array(
-				'Libri e testi (anche in formato digitale)',
-				'Hardware e software',
-				'Formazione e aggiornamento',
-				'Teatro',
-				'Cinema',
-				'Mostre ed eventi culturali',
-				'Spettacoli dal vivo',
-				'Musei',
-			);
-
-			$beni       = array_map( 'sanitize_title', $beni_index );
 			$terms      = get_terms( 'product_cat' );
-			$bene_value = is_array( $data ) ? key( $data ) : '';
-			$term_value = $bene_value ? $data[ $bene_value ] : '';
+			$term_value = is_array( $data ) && isset( $data['libri'] ) ? $data['libri'] : '';
 
-			echo '<select name="wccdc-beni-' . esc_attr( $n ) . '" class="wccdc-field beni">';
-				echo '<option value="">Bene Carta della Cultura</option>';
-
-			foreach ( $beni as $bene ) {
-
-				echo '<option value="' . esc_attr( $bene ) . '"' . ( $bene === $bene_value ? ' selected="selected"' : '' ) . '>' . esc_html( $this->get_bene_lable( $beni_index, $bene ) ) . '</option>';
-
+			// Se $exclude_categories non è fornito, calcolalo dalle categorie già selezionate nella pagina
+			if ( $exclude_categories === null ) {
+				$exclude_categories = array();
+				// Non possiamo accedere alle altre dropdown direttamente qui, quindi questo sarà gestito via JavaScript
+				// Ma per coerenza manteniamo il parametro
 			}
-			echo '</select>';
 
 			echo '<select name="wccdc-categories-' . esc_attr( $n ) . '" class="wccdc-field categories">';
 				echo '<option value="">Categoria WooCommerce</option>';
 
 			foreach ( $terms as $term ) {
+				// Escludi categorie già selezionate se specificato
+				if ( is_array( $exclude_categories ) && in_array( $term->term_id, $exclude_categories ) ) {
+					continue;
+				}
+				
 				echo '<option value="' . esc_attr( $term->term_id ) . '"' . ( intval( $term_value ) === $term->term_id ? ' selected="selected"' : '' ) . '>' . esc_html( $term->name ) . '</option>';
 			}
 			echo '</select>';
+
+			// Campo nascosto per salvare automaticamente il bene "libri"
+			echo '<input type="hidden" name="wccdc-beni-' . esc_attr( $n ) . '" value="libri">';
 
 			if ( 1 === intval( $n ) ) {
 
@@ -191,12 +174,13 @@ class WCCDC_Admin {
 
 		if ( isset( $_POST['add-cat-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['add-cat-nonce'] ) ), 'wccdc-add-cat-nonce' ) ) {
 
-			$number       = isset( $_POST['number'] ) ? sanitize_text_field( wp_unslash( $_POST['number'] ) ) : '';
-			$exclude_beni = isset( $_POST['exclude-beni'] ) ? sanitize_text_field( wp_unslash( $_POST['exclude-beni'] ) ) : '';
+			$number             = isset( $_POST['number'] ) ? sanitize_text_field( wp_unslash( $_POST['number'] ) ) : '';
+			$exclude_beni       = isset( $_POST['exclude-beni'] ) ? sanitize_text_field( wp_unslash( $_POST['exclude-beni'] ) ) : '';
+			$exclude_categories = isset( $_POST['exclude-categories'] ) ? array_map( 'intval', (array) $_POST['exclude-categories'] ) : array();
 
 			if ( $number ) {
 
-				$this->setup_cat( $number, null, $exclude_beni );
+				$this->setup_cat( $number, null, $exclude_beni, $exclude_categories );
 
 			}
 		}
@@ -495,10 +479,27 @@ class WCCDC_Admin {
 
 		if ( $categories ) {
 
+			// Raccogli tutte le categorie già selezionate
+			$all_selected_categories = array();
+			foreach ( $categories as $cat_data ) {
+				if ( is_array( $cat_data ) && isset( $cat_data['libri'] ) ) {
+					$all_selected_categories[] = $cat_data['libri'];
+				}
+			}
+
 			for ( $i = 1; $i <= $tot_cats; $i++ ) {
-
-				$this->setup_cat( $i, $categories[ $i - 1 ] );
-
+				// Per ogni dropdown, escludi tutte le altre categorie selezionate
+				$exclude_for_this_dropdown = $all_selected_categories;
+				// Rimuovi la categoria corrente dall'esclusione (perché deve rimanere selezionata)
+				$current_cat = isset( $categories[ $i - 1 ]['libri'] ) ? $categories[ $i - 1 ]['libri'] : '';
+				if ( $current_cat ) {
+					$key = array_search( $current_cat, $exclude_for_this_dropdown );
+					if ( $key !== false ) {
+						unset( $exclude_for_this_dropdown[$key] );
+					}
+				}
+				
+				$this->setup_cat( $i, $categories[ $i - 1 ], null, $exclude_for_this_dropdown );
 			}
 		} else {
 
@@ -508,7 +509,7 @@ class WCCDC_Admin {
 
 									echo '</ul>';
 									echo '<input type="hidden" name="wccdc-tot-cats" class="wccdc-tot-cats" value="' . ( is_array( $categories ) ? esc_attr( count( $categories ) ) : 1 ) . '">';
-									echo '<p class="description">' . esc_html__( 'Seleziona le categorie di prodotti corrispondenti ai beni acquistabili.', 'wc-carta-della-cultura' ) . '</p>';
+									echo '<p class="description">' . esc_html__( 'Seleziona le categorie di prodotti corrispondenti ai libri acquistabili con Carta della Cultura.', 'wc-carta-della-cultura' ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
@@ -523,9 +524,9 @@ class WCCDC_Admin {
 							echo '<tr>';
 								echo '<th scope="row">' . esc_html__( 'Controllo prodotti', 'wc-carta-della-cultura' ) . '</th>';
 								echo '<td>';
-                                    echo '<input type="checkbox" name="wccdc-items-check" value="1" disabled>';
+									echo '<input type="checkbox" name="wccdc-items-check" value="1" disabled>';
 									echo '<p class="description">' . wp_kses_post( __( 'Mostra il metodo di pagamento solo se il/ i prodotti a carrello sono acquistabili con buoni <i>Carta della Cultura</i>.<br>Più prodotti dovranno prevedere l\'uso di buoni dello stesso ambito di utilizzo.', 'wc-carta-della-cultura' ) ) . '</p>';
-                                    echo wp_kses_post( $this->get_go_premium( true ) );
+									echo wp_kses_post( $this->get_go_premium( true ) );
 								echo '</td>';
 							echo '</tr>';
 
@@ -745,16 +746,33 @@ class WCCDC_Admin {
 				$tot = $tot ? $tot : 1;
 
 				$wccdc_categories = array();
+				$used_cat_ids = array(); // Per tracciare le categorie già utilizzate e prevenire duplicati
 
-				for ( $i = 1; $i <= $tot; $i++ ) {
+				// Conta quanti campi categorie sono stati inviati
+				$max_index = 0;
+				foreach ($_POST as $key => $value) {
+					if (strpos($key, 'wccdc-categories-') === 0) {
+						$index = intval(str_replace('wccdc-categories-', '', $key));
+						if ($index > $max_index) {
+							$max_index = $index;
+						}
+					}
+				}
 
-					$bene = isset( $_POST[ 'wccdc-beni-' . $i ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'wccdc-beni-' . $i ] ) ) : '';
+				// Processa tutti i campi categorie trovati
+				for ( $i = 1; $i <= $max_index; $i++ ) {
+
+					$bene = 'libri'; // Sempre "libri" poiché è l'unico bene consentito
 					$cat  = isset( $_POST[ 'wccdc-categories-' . $i ] ) ? sanitize_text_field( wp_unslash( $_POST[ 'wccdc-categories-' . $i ] ) ) : '';
 
-					if ( $bene && $cat ) {
-
+					if ( $cat ) {
+						// Controlla se la categoria è già stata utilizzata
+						if ( in_array( $cat, $used_cat_ids ) ) {
+							// Salta questa categoria duplicata
+							continue;
+						}
+						$used_cat_ids[] = $cat;
 						$wccdc_categories[] = array( $bene => $cat );
-
 					}
 				}
 

@@ -98,52 +98,39 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Restituisce la cateogia prodotto corrispondente al bene acquistabile con il buono
+	 * Restituisce le categorie prodotto corrispondenti al bene "libri"
 	 *
-	 * @param string $purchasable bene acquistabile.
-	 * @param array  $categories  gli abbinamenti di categoria salvati nel db.
+	 * @param array $categories gli abbinamenti di categoria salvati nel db.
 	 *
-	 * @return int l'id di categoria acquistabile
+	 * @return array gli ID di categoria acquistabili
 	 */
-	public static function get_purchasable_cats( $purchasable, $categories = null ) {
+	public static function get_purchasable_cats( $categories = null ) {
 
 		$wccdc_categories = is_array( $categories ) ? $categories : get_option( 'wccdc-categories' );
+		$output = array();
 
 		if ( $wccdc_categories ) {
-
-			$purchasable      = str_replace( '(', '', $purchasable );
-			$purchasable      = str_replace( ')', '', $purchasable );
-			$bene             = strtolower( str_replace( ' ', '-', $purchasable ) );
-			$output           = array();
-			$count_categories = count( $wccdc_categories );
-
-			for ( $i = 0; $i < $count_categories; $i++ ) {
-
-				if ( array_key_exists( $bene, $wccdc_categories[ $i ] ) ) {
-
-					$output[] = $wccdc_categories[ $i ][ $bene ];
-
+			foreach ( $wccdc_categories as $cat ) {
+				if ( is_array( $cat ) && isset( $cat['libri'] ) ) {
+					$output[] = $cat['libri'];
 				}
 			}
-
-			return $output;
-
 		}
 
+		return $output;
 	}
 
 	/**
 	 * Tutti i prodotti dell'ordine devono essere della tipologia (cat) consentita dal buono Carta della Cultura.
 	 *
 	 * @param  object $order the WC order.
-	 * @param  string $bene  il bene acquistabile con il buono.
 	 *
 	 * @return bool
 	 */
-	public static function is_purchasable( $order, $bene ) {
+	public static function is_purchasable( $order ) {
 
 		$wccdc_categories = get_option( 'wccdc-categories' );
-		$cats            = self::get_purchasable_cats( $bene, $wccdc_categories );
+		$cats            = self::get_purchasable_cats( $wccdc_categories );
 		$items           = $order->get_items();
 		$output          = true;
 
@@ -243,8 +230,13 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 			$importo_buono = floatval( $response->checkResp->importo ); // L'importo del buono inserito.
 			$operation     = null;
 
+			// Controllo di sicurezza: il buono non deve superare 100€
+			if ( $importo_buono > 100.00 ) {
+				return __( 'Il valore del buono Carta della Cultura non può superare 100€.', 'wc-carta-della-cultura' );
+			}
+
 			/*Verifica se i prodotti dell'ordine sono compatibili con i beni acquistabili con il buono*/
-			$purchasable = self::is_purchasable( $order, $bene );
+			$purchasable = self::is_purchasable( $order );
 
 			if ( ! $purchasable ) {
 

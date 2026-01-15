@@ -80,12 +80,12 @@ class WCCDC_Soap_Client {
 
 		if ( $this->sandbox ) {
 			$this->local_cert = WCCDC_DIR . 'demo/wccdc-demo-certificate.pem';
-			$this->location   = 'https://wstest.cartadeldocente.istruzione.it/VerificaVoucherDocWEB/VerificaVoucher';
+			$this->location   = 'https://wstest.cartadellacultura.it/WSUtilizzoVoucherCDCWEB/VerificaVoucher';
 			$this->passphrase = 'm3D0T4aM';
 
 		} else {
 			$this->local_cert = WCCDC_PRIVATE . $this->get_local_cert();
-			$this->location   = 'https://ws.cartadeldocente.istruzione.it/VerificaVoucherDocWEB/VerificaVoucher';
+			$this->location   = 'https://ws.cartadellacultura.it/WSUtilizzoVoucherCDCWEB/VerificaVoucher';
 			$this->passphrase = $this->get_user_passphrase();
 		}
 
