@@ -235,7 +235,7 @@ class WCCDC {
 
 			if ( 'carta-della-cultura' === $order->get_payment_method() ) {
 
-				$wccdc_code = $order->get_meta( 'wc-codice-carta-dela-cultura' );
+				$wccdc_code = $order->get_meta( 'wc-codice-carta-della-cultura' );
 				$total      = $order->get_total();
 				$validate   = WCCDC_Gateway::process_code( $order_id, $wccdc_code, $total, false, true );
 
