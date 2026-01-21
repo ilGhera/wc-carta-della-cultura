@@ -313,7 +313,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 
 			} else {
 
-				/* Translators: Notifica all'utente nella pagina di checkout */
+				/* translators: %s: Error message from voucher validation */
 				wc_add_notice( sprintf( __( 'Carta della Cultura - %s', 'ilghera-carta-della-cultura-for-woocommerce' ), $notice ), 'error' );
 
 			}
