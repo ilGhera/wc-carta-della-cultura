@@ -586,7 +586,7 @@ class WCCDC_Admin {
 							echo '<tr class="wccdc-email-order-failed wccdc-email-details">';
 								echo '<th scope="row">' . esc_html__( 'Ordine fallito', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 								echo '<td>';
-										/* translators: %s: Checkout URL placeholder [checkout-url] */
+										/* translators: %s: Checkout URL */
 										$default_order_failed_message = __( 'La validazione del buono Carta della Cultura ha restituito un errore e non è stato possibile completare l\'ordine, effettua il pagamento a <a href="%s">questo indirizzo</a>.', 'ilghera-carta-della-cultura-for-woocommerce' );
 										$placeholder_text = sprintf( $default_order_failed_message, '[checkout-url]' );
 										echo '<textarea cols="6" rows="6" class="regular-text" name="wccdc-email-order-failed" placeholder="' . esc_html( $placeholder_text ) . '" disabled></textarea>';
