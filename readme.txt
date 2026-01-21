@@ -21,26 +21,26 @@ In fase di checkout, il buono inserito dall'utente verrà verificato per validit
 Il plugin prevede l'invio di contenuti ad un servizio esterno, in particolare i dati relativi ai prodotti acquistati dall'utente come categoria d'appartenenza e prezzo.
 
 = Indirizzo di destinazione =
-[https://ws.cartadeldocente.istruzione.it/VerificaVoucherDocWEB/VerificaVoucher](https://ws.cartadeldocente.istruzione.it/VerificaVoucherDocWEB/VerificaVoucher)
+[https://ws.cartadellacultura.it/WSUtilizzoVoucherCDCWEB/VerificaVoucher](https://ws.cartadellacultura.it/WSUtilizzoVoucherCDCWEB/VerificaVoucher)
 
 = Maggiori informazioni sul servizio Carta della Cultura: =
-[https://cartadeldocente.istruzione.it/](https://cartadeldocente.istruzione.it/)
+[https://www.cartadellacultura.it/cartaculturaEsercente/#/login](https://www.cartadellacultura.it/cartaculturaEsercente/#/login)
 
 = Informativa privacy del servizio: =
-[https://cartadeldocente.istruzione.it/static/cartadeldocente_infoprivacy.pdf](https://cartadeldocente.istruzione.it/static/cartadeldocente_infoprivacy.pdf)
+[https://www.cartadellacultura.it/cartaculturaEsercente/assets/docs/Infoprivacy_CDC_Esercenti.pdf](https://www.cartadellacultura.it/cartaculturaEsercente/assets/docs/Infoprivacy_CDC_Esercenti.pdf)
 
 
 = Important notes =
 This plugin sends data to an external service, like the categories and the prices of the products bought by the user.
 
 = Service endpoint: =
-[https://ws.cartadeldocente.istruzione.it/VerificaVoucherDocWEB/VerificaVoucher](https://ws.cartadeldocente.istruzione.it/VerificaVoucherDocWEB/VerificaVoucher)
+[https://ws.cartadellacultura.it/WSUtilizzoVoucherCDCWEB/VerificaVoucher](https://ws.cartadellacultura.it/WSUtilizzoVoucherCDCWEB/VerificaVoucher)
 
 = Service informations: =
-[https://cartadeldocente.istruzione.it/](https://cartadeldocente.istruzione.it/)
+[https://www.cartadellacultura.it/cartaculturaEsercente/#/login](https://www.cartadellacultura.it/cartaculturaEsercente/#/login)
 
 = Service privacy policy: =
-[https://cartadeldocente.istruzione.it/static/cartadeldocente_infoprivacy.pdf](https://cartadeldocente.istruzione.it/static/cartadeldocente_infoprivacy.pdf)
+[https://www.cartadellacultura.it/cartaculturaEsercente/assets/docs/Infoprivacy_CDC_Esercenti.pdf](https://www.cartadellacultura.it/cartaculturaEsercente/assets/docs/Infoprivacy_CDC_Esercenti.pdf)
 
 
 = Funzionalità =

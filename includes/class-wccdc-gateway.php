@@ -28,7 +28,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 		$this->id                 = 'carta-della-cultura';
 		$this->has_fields         = true;
 		$this->method_title       = __( 'Carta della Cultura', 'ilghera-carta-della-cultura-for-woocommerce' );
-		$this->method_description = __( 'Consente ai docenti di utilizzare il buono a loro riservato per l\'acquisto di materiale didattico.', 'ilghera-carta-della-cultura-for-woocommerce' );
+		$this->method_description = __( 'Consente ai beneficiari della Carta della Cultura di utilizzare il buono per l\'acquisto di libri muniti di codice ISBN.', 'ilghera-carta-della-cultura-for-woocommerce' );
 
 		if ( get_option( 'wccdc-image' ) ) {
 
