@@ -1,8 +1,8 @@
 === ilGhera Carta della Cultura for WooCommerce ===
 Contributors: ghera74
 Tags: Woocommerce, e-commerce, shop, orders, payment, payment gateway, payment method, 
-Version: 0.9.0
-Stable tag: 0.9.0
+Version: 0.9.1
+Stable tag: 0.9.1
 Requires at least: 5.0
 Tested up to: 6.9
 WC tested up to: 10
