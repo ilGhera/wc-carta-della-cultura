@@ -433,7 +433,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 		try {
 
 			/*Prima verifica del buono*/
-			$response      = $soap_client->check();
+			$response      = $soap_client->check( 1, $order_id );
 			$bene          = $response->checkResp->ambito; // Il bene acquistabile con il buono inserito.
 			$importo_buono = floatval( $response->checkResp->importo ); // L'importo del buono inserito.
 			$on_hold       = self::$orders_on_hold && ! $complete;
@@ -493,7 +493,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 						if ( ! $on_hold ) {
 
 							/*Validazione buono*/
-							$operation = $soap_client->confirm();
+							$operation = $soap_client->confirm( $order_id );
 
 						}
 

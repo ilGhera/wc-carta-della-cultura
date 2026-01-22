@@ -147,20 +147,64 @@ class WCCDC_Soap_Client {
 	}
 
 	/**
+	 * Ottiene il codice ISBN dal primo prodotto dell'ordine
+	 *
+	 * @param int $order_id ID dell'ordine.
+	 * @return string|null ISBN o null se non trovato
+	 */
+	private function get_isbn_from_order( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return null;
+		}
+
+		foreach ( $order->get_items() as $item ) {
+			$product = $item->get_product();
+			if ( ! $product ) {
+				continue;
+			}
+
+			// Cerca ISBN nei metadati del prodotto
+			$isbn = $product->get_meta( 'isbn' );
+			if ( ! empty( $isbn ) ) {
+				return sanitize_text_field( $isbn );
+			}
+
+			// Cerca in SKU (potrebbe contenere ISBN)
+			$sku = $product->get_sku();
+			if ( ! empty( $sku ) && preg_match( '/^[0-9]{13}$/', $sku ) ) {
+				return $sku;
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Chiamata Check di tipo 1 e 2
 	 *
 	 * @param  integer $value il tipo di operazione da eseguire
 	 * 1 per solo controllo
 	 * 2 per scalare direttamente il valore del buono.
+	 * @param  int|null $order_id ID dell'ordine per ottenere ISBN.
 	 */
-	public function check( $value = 1 ) {
+	public function check( $value = 1, $order_id = null ) {
+		$isbn = $order_id ? $this->get_isbn_from_order( $order_id ) : null;
+		
+		$check_data = array(
+			'tipoOperazione' => $value,
+			'codiceVoucher'  => $this->codice_voucher,
+			'importo'        => $this->import,
+			'tipoBene'       => 'L', // Sempre "L" per libri
+		);
+		
+		if ( ! empty( $isbn ) ) {
+			$check_data['codiceISBN'] = $isbn;
+		}
+
 		$check = $this->soap_client()->Check(
 			array(
-				'checkReq' => array(
-					'tipoOperazione' => $value,
-					'codiceVoucher'  => $this->codice_voucher,
-					'importo'        => $this->import,
-				),
+				'checkReq' => $check_data,
 			)
 		);
 
@@ -169,15 +213,26 @@ class WCCDC_Soap_Client {
 
 	/**
 	 * Chiamata Confirm utile ad utilizzare solo parte del valore del buono
+	 *
+	 * @param int|null $order_id ID dell'ordine per ottenere ISBN.
 	 */
-	public function confirm() {
+	public function confirm( $order_id = null ) {
+		$isbn = $order_id ? $this->get_isbn_from_order( $order_id ) : null;
+		
+		$confirm_data = array(
+			'tipoOperazione' => '1',
+			'codiceVoucher'  => $this->codice_voucher,
+			'importo'        => $this->import,
+			'tipoBene'       => 'L', // Sempre "L" per libri
+		);
+		
+		if ( ! empty( $isbn ) ) {
+			$confirm_data['codiceISBN'] = $isbn;
+		}
+
 		$confirm = $this->soap_client()->Confirm(
 			array(
-				'checkReq' => array(
-					'tipoOperazione' => '1',
-					'codiceVoucher'  => $this->codice_voucher,
-					'importo'        => $this->import,
-				),
+				'checkReq' => $confirm_data,
 			)
 		);
 
