@@ -48,6 +48,9 @@ class WCCDC {
 		add_action( 'wp_ajax_check-for-coupon', array( $this, 'wccdc_check_for_coupon' ) );
 		add_action( 'wp_ajax_nopriv_check-for-coupon', array( $this, 'wccdc_check_for_coupon' ) );
 		add_action( 'woocommerce_checkout_process', array( $this, 'process_coupon' ) );
+		
+		// Registra l'impostazione per il campo ISBN
+		add_action( 'admin_init', array( $this, 'register_isbn_setting' ) );
 
 		if ( $this->orders_on_hold ) {
 
@@ -55,6 +58,17 @@ class WCCDC {
 
 		}
 
+	}
+
+	/**
+	 * Registra l'impostazione per il campo ISBN
+	 *
+	 * @return void
+	 */
+	public function register_isbn_setting() {
+		register_setting( 'wccdc-options', 'wccdc-isbn-source' );
+		register_setting( 'wccdc-options', 'wccdc-isbn-field' );
+		register_setting( 'wccdc-options', 'wccdc-custom-isbn-field-value' );
 	}
 
 	/**

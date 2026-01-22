@@ -158,22 +158,56 @@ class WCCDC_Soap_Client {
 			return null;
 		}
 
+		// Ottieni il campo ISBN configurato
+		$isbn_field = get_option( 'wccdc-isbn-field' );
+		if ( empty( $isbn_field ) || $isbn_field === 'none' ) {
+			return null;
+		}
+
+		// Se è un campo personalizzato (custom)
+		if ( $isbn_field === 'custom' ) {
+			$isbn_field = get_option( 'wccdc-custom-isbn-field-value' );
+			if ( empty( $isbn_field ) ) {
+				return null;
+			}
+		}
+
 		foreach ( $order->get_items() as $item ) {
 			$product = $item->get_product();
 			if ( ! $product ) {
 				continue;
 			}
 
-			// Cerca ISBN nei metadati del prodotto
-			$isbn = $product->get_meta( 'isbn' );
-			if ( ! empty( $isbn ) ) {
-				return sanitize_text_field( $isbn );
+			$isbn = null;
+			
+			// Determina se è un meta field o un attributo
+			if ( strpos( $isbn_field, 'meta:' ) === 0 ) {
+				// Campo meta
+				$meta_key = substr( $isbn_field, 5 );
+				$isbn = $product->get_meta( $meta_key );
+			} elseif ( strpos( $isbn_field, 'attribute:' ) === 0 ) {
+				// Attributo di prodotto
+				$taxonomy = substr( $isbn_field, 10 );
+				$isbn = $product->get_attribute( $taxonomy );
+				// Se l'attributo è vuoto, prova a ottenere il termine
+				if ( empty( $isbn ) ) {
+					$terms = wp_get_post_terms( $product->get_id(), $taxonomy );
+					if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+						$isbn = $terms[0]->name;
+					}
+				}
+			} else {
+				// Fallback: prova come meta field
+				$isbn = $product->get_meta( $isbn_field );
 			}
 
-			// Cerca in SKU (potrebbe contenere ISBN)
-			$sku = $product->get_sku();
-			if ( ! empty( $sku ) && preg_match( '/^[0-9]{13}$/', $sku ) ) {
-				return $sku;
+			if ( ! empty( $isbn ) ) {
+				// Pulisci il valore (rimuovi spazi, trattini)
+				$clean_isbn = preg_replace( '/[^0-9]/', '', $isbn );
+				// Verifica che sia un ISBN valido (13 cifre)
+				if ( preg_match( '/^[0-9]{13}$/', $clean_isbn ) ) {
+					return $clean_isbn;
+				}
 			}
 		}
 
