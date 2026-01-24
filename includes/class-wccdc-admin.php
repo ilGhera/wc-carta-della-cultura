@@ -41,6 +41,7 @@ class WCCDC_Admin {
 		add_action( 'wp_ajax_wccdc-add-cat', array( $this, 'add_cat_callback' ) );
 		add_action( 'wp_ajax_wccdc-sandbox', array( $this, 'sandbox_callback' ) );
 		add_action( 'wp_ajax_wccdc_rescan_isbn', array( $this, 'rescan_isbn_callback' ) );
+		add_action( 'wp_ajax_wccdc_remove_manual_field', array( $this, 'remove_manual_field_callback' ) );
 	}
 
 	/**
@@ -360,50 +361,30 @@ class WCCDC_Admin {
 
 		$candidates = array();
 
-		// 1. Cerca nei CUSTOM FIELDS (post_meta)
+		// 1. Cerca nei CUSTOM FIELDS (post_meta) che contengono "ISBN" nel nome (case insensitive)
 		$meta_keys = $wpdb->get_col(
-			"SELECT DISTINCT pm.meta_key
-			 FROM {$wpdb->postmeta} pm
-			 INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
-			 WHERE p.post_type = 'product'
-			   AND pm.meta_key NOT LIKE '\_%'
-			   AND pm.meta_key NOT IN ('total_sales', '_stock_status')
-			 ORDER BY pm.meta_key"
+			$wpdb->prepare(
+				"SELECT DISTINCT pm.meta_key
+				 FROM {$wpdb->postmeta} pm
+				 INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
+				 WHERE p.post_type = 'product'
+				   AND LOWER(pm.meta_key) LIKE %s
+				 ORDER BY pm.meta_key",
+				'%isbn%'
+			)
 		);
 
+		// DEBUG: Log delle chiavi meta trovate
+		error_log('WCCDC ISBN META KEYS FOUND: ' . print_r($meta_keys, true));
+
 		foreach ( $meta_keys as $meta_key ) {
-			$sample_values = $wpdb->get_col(
-				$wpdb->prepare(
-					"SELECT pm.meta_value
-					 FROM {$wpdb->postmeta} pm
-					 INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
-					 WHERE p.post_type = 'product'
-					   AND pm.meta_key = %s
-					   AND pm.meta_value IS NOT NULL
-					   AND pm.meta_value != ''
-					 LIMIT 5",
-					$meta_key
-				)
+			// Non serve più controllare i valori, basta che il nome contenga ISBN
+			$candidates['meta'][ $meta_key ] = array(
+				'sample' => '(Campo con nome contenente ISBN)',
+				'count'  => 0,
+				'type'   => 'meta',
+				'forced' => true,
 			);
-
-			$isbn_count = 0;
-			$total_count = count( $sample_values );
-
-			foreach ( $sample_values as $value ) {
-				$clean_value = preg_replace( '/[^0-9]/', '', $value );
-				if ( preg_match( '/^[0-9]{13}$/', $clean_value ) ) {
-					$isbn_count++;
-				}
-			}
-
-			// Se almeno il 50% dei campioni sembra ISBN, aggiungi ai candidati
-			if ( $total_count > 0 && ( $isbn_count / $total_count ) >= 0.5 ) {
-				$candidates['meta'][ $meta_key ] = array(
-					'sample' => $sample_values[0] ?? '',
-					'count'  => $isbn_count,
-					'type'   => 'meta',
-				);
-			}
 		}
 
 		// 2. Cerca negli ATTRIBUTI DI PRODOTTO (tassonomie)
@@ -412,6 +393,23 @@ class WCCDC_Admin {
 		foreach ( $attribute_taxonomies as $tax ) {
 			$taxonomy_name = wc_attribute_taxonomy_name( $tax->attribute_name );
 			
+			// PRIMA REGOLA: Se il nome dell'attributo contiene "ISBN" (case-insensitive), aggiungilo automaticamente
+			$attribute_name_lower = strtolower( $tax->attribute_name );
+			$attribute_label_lower = strtolower( $tax->attribute_label );
+			
+			if ( false !== strpos( $attribute_name_lower, 'isbn' ) || false !== strpos( $attribute_label_lower, 'isbn' ) ) {
+				// Aggiungi automaticamente senza controllare i valori
+				$candidates['attribute'][ $taxonomy_name ] = array(
+					'sample' => '(Attributo con nome contenente ISBN)',
+					'count'  => 0,
+					'type'   => 'attribute',
+					'label'  => $tax->attribute_label ? $tax->attribute_label : $tax->attribute_name,
+					'forced' => true, // Flag per indicare che è stato aggiunto forzatamente
+				);
+				continue; // Passa al prossimo attributo
+			}
+			
+			// SECONDA REGOLA: Controlla i valori come prima
 			// Ottieni alcuni termini di questa tassonomia
 			$terms = get_terms( array(
 				'taxonomy'   => $taxonomy_name,
@@ -449,18 +447,8 @@ class WCCDC_Admin {
 		// DEBUG: Log per vedere cosa è stato trovato
 		error_log('WCCDC ISBN Scan Results: ' . print_r($candidates, true));
 		
-		// Se non trova nulla, mostra almeno alcuni campi comuni
-		if ( empty( $candidates['meta'] ) && empty( $candidates['attribute'] ) ) {
-			// Cerca campi comuni che potrebbero contenere ISBN
-			$common_fields = array('isbn', 'ISBN', 'codice_isbn', '_isbn', 'isbn_code');
-			foreach ( $common_fields as $field ) {
-				$candidates['meta'][ $field ] = array(
-					'sample' => '',
-					'count'  => 0,
-					'type'   => 'meta',
-				);
-			}
-		}
+		// Non aggiungere più campi comuni se non trovati
+		// La select mostrerà solo "Nessuno" e "Inserisci manualmente"
 
 		// Salva i candidati trovati
 		update_option( 'wccdc-isbn-candidates', $candidates );
@@ -766,11 +754,11 @@ class WCCDC_Admin {
 									echo '<div style="margin-bottom:15px;">';
 										echo '<label style="margin-right:20px;">';
 											echo '<input type="radio" name="wccdc-isbn-source" value="meta"' . checked( $isbn_source, 'meta', false ) . ' /> ';
-											echo esc_html__( 'Campo personalizzato (post_meta)', 'ilghera-carta-della-cultura-for-woocommerce' );
+											echo esc_html__( 'Campo personalizzato', 'ilghera-carta-della-cultura-for-woocommerce' );
 										echo '</label>';
 										echo '<label>';
 											echo '<input type="radio" name="wccdc-isbn-source" value="attribute"' . checked( $isbn_source, 'attribute', false ) . ' /> ';
-											echo esc_html__( 'Attributo di prodotto', 'ilghera-carta-della-cultura-for-woocommerce' );
+											echo esc_html__( 'Attributo di prodotto (globali)', 'ilghera-carta-della-cultura-for-woocommerce' );
 										echo '</label>';
 										echo '<p class="description">' . esc_html__( 'Scegli dove il plugin deve cercare il codice ISBN nei tuoi prodotti.', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</p>';
 									echo '</div>';
@@ -827,23 +815,96 @@ class WCCDC_Admin {
 											echo '</optgroup>';
 										}
 										
+										// Se il campo salvato è un valore manuale (non inizia con meta: o attribute: e non è none/custom)
+										// Aggiungilo come opzione visibile SOLO se la fonte corrente corrisponde alla fonte salvata con il campo
+										$is_custom_value = false;
+										$custom_value_display = '';
+										if ( ! empty( $wccdc_isbn_field ) && $wccdc_isbn_field !== 'none' && $wccdc_isbn_field !== 'custom' ) {
+											if ( strpos( $wccdc_isbn_field, 'meta:' ) !== 0 && strpos( $wccdc_isbn_field, 'attribute:' ) !== 0 ) {
+												// Recupera la fonte salvata per questo campo manuale
+												$saved_source_for_custom = get_option( 'wccdc-isbn-source-for-custom', '' );
+												// Se non c'è una fonte salvata, usa quella corrente (per retrocompatibilità)
+												if ( empty( $saved_source_for_custom ) ) {
+													$saved_source_for_custom = $isbn_source;
+												}
+												// Mostra solo se la fonte corrente corrisponde a quella salvata
+												if ( $isbn_source === $saved_source_for_custom ) {
+													$is_custom_value = true;
+													$custom_value_display = $wccdc_isbn_field;
+												}
+											}
+										}
+										
+										// Se c'è un valore personalizzato salvato, mostralo come opzione selezionata
+										if ( $is_custom_value ) {
+											echo '<optgroup label="' . esc_attr__( 'Campo manuale', 'ilghera-carta-della-cultura-for-woocommerce' ) . '">';
+											echo '<option value="' . esc_attr( $wccdc_isbn_field ) . '" selected="selected">' . 
+												 esc_html( $custom_value_display ) . ' ' . esc_html__( '(manuale)', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
+											echo '</optgroup>';
+										}
+										
 										// Opzione per inserire manualmente un campo non rilevato
 										echo '<option value="custom"' . selected( $wccdc_isbn_field, 'custom', false ) . '>' . 
-											 esc_html__( 'Inserisci manualmente...', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
+											 esc_html__( 'Inserisci manualmente', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
 										
 									echo '</select>';
 									
 									// Campo di testo per inserimento manuale (visibile solo se selezionato "custom")
-									echo '<div id="wccdc-custom-isbn-field" style="margin-top:10px;' . ( $wccdc_isbn_field === 'custom' ? '' : 'display:none;' ) . '">';
+									$show_custom_field = false;
+									$custom_field_value = '';
+									
+									if ( $wccdc_isbn_field === 'custom' ) {
+										$show_custom_field = true;
+										$custom_field_value = get_option( 'wccdc-custom-isbn-field-value', '' );
+									}
+									
+									echo '<div id="wccdc-custom-isbn-field" style="margin-top:10px;' . ( $show_custom_field ? '' : 'display:none;' ) . '">';
 										echo '<input type="text" name="wccdc-custom-isbn-field-value" value="' . 
-											 esc_attr( get_option( 'wccdc-custom-isbn-field-value', '' ) ) . '" placeholder="' . 
+											 esc_attr( $custom_field_value ) . '" placeholder="' . 
 											 esc_attr__( 'es. isbn, codice_isbn, _isbn oppure pa_isbn', 'ilghera-carta-della-cultura-for-woocommerce' ) . '" />';
 										echo '<p class="description">' . esc_html__( 'Inserisci il nome esatto del campo meta o dell\'attributo che contiene l\'ISBN', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</p>';
+										echo '<p class="description" style="margin-top:5px;">';
+											echo '<strong>' . esc_html__( 'Esempi:', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</strong>';
+											echo '<br>';
+											echo '- ' . esc_html__( 'Per un campo personalizzato (post_meta):', 'ilghera-carta-della-cultura-for-woocommerce' ) . ' <code>isbn</code>, <code>_isbn</code>, <code>codice_isbn</code>';
+											echo '<br>';
+											echo '- ' . esc_html__( 'Per un attributo globale WooCommerce:', 'ilghera-carta-della-cultura-for-woocommerce' ) . ' <code>isbn</code>';
+											echo '<br>';
+											echo '- ' . esc_html__( 'Per un attributo personalizzato di prodotto:', 'ilghera-carta-della-cultura-for-woocommerce' ) . ' ' . esc_html__( 'il nome esatto come appare nel prodotto (case-insensitive)', 'ilghera-carta-della-cultura-for-woocommerce' );
+										echo '</p>';
 									echo '</div>';
+									
+									// Scritta "Rimuovi campo manuale" (visibile solo se è selezionato un campo manuale E la fonte corrente corrisponde a quella salvata)
+									$is_manual_field = false;
+									$saved_source_for_custom = get_option( 'wccdc-isbn-source-for-custom', '' );
+									if ( ! empty( $wccdc_isbn_field ) && $wccdc_isbn_field !== 'none' && $wccdc_isbn_field !== 'custom' ) {
+										if ( strpos( $wccdc_isbn_field, 'meta:' ) !== 0 && strpos( $wccdc_isbn_field, 'attribute:' ) !== 0 ) {
+											// Verifica se la fonte corrente corrisponde a quella salvata
+											if ( empty( $saved_source_for_custom ) || $isbn_source === $saved_source_for_custom ) {
+												$is_manual_field = true;
+											}
+										}
+									}
+									
+									if ( $is_manual_field ) {
+										echo '<div id="wccdc-remove-manual-field" style="margin-top:10px; margin-bottom:15px;">';
+											echo '<a href="#" id="wccdc-remove-manual-link" style="color:#dc3232; text-decoration:none;">' . 
+												 esc_html__( 'Rimuovi campo manuale', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</a>';
+											echo '<span class="spinner" style="float:none;margin-left:5px;"></span>';
+											echo '<span id="wccdc-remove-message" style="margin-left:10px;"></span>';
+										echo '</div>';
+									}
 									
 									echo '<p class="description">' . 
 										 esc_html__( 'Seleziona il campo che contiene il codice ISBN nei tuoi prodotti. Il plugin ha scansionato automaticamente i campi disponibili.', 'ilghera-carta-della-cultura-for-woocommerce' ) . 
 										 '</p>';
+									
+									// DEBUG: Log per verificare cosa è stato trovato
+									error_log('WCCDC ISBN CANDIDATES FOR DISPLAY: ' . print_r($candidates, true));
+									error_log('WCCDC ISBN SOURCE: ' . $isbn_source);
+									error_log('WCCDC META CANDIDATES COUNT: ' . (isset($meta_candidates) ? count($meta_candidates) : 0));
+									error_log('WCCDC ATTRIBUTE CANDIDATES COUNT: ' . (isset($attribute_candidates) ? count($attribute_candidates) : 0));
+									error_log('WCCDC ISBN FIELD SAVED: ' . $wccdc_isbn_field);
 									
 									// Pulsante per forzare una nuova scansione
 									echo '<p>';
@@ -853,18 +914,8 @@ class WCCDC_Admin {
 										echo '<span id="wccdc-rescan-message" style="margin-left:10px;"></span>';
 									echo '</p>';
 									
-									// DEBUG: Mostra i campi trovati
-									echo '<div style="margin-top:10px; padding:10px; background:#f5f5f5; border:1px solid #ddd;">';
-										echo '<strong>' . esc_html__( 'DEBUG - Campi trovati:', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</strong><br>';
-										$candidates_debug = get_option( 'wccdc-isbn-candidates', array() );
-										if ( empty( $candidates_debug ) ) {
-											echo esc_html__( 'Nessun campo trovato. La scansione potrebbe non essere ancora stata eseguita.', 'ilghera-carta-della-cultura-for-woocommerce' );
-										} else {
-											echo '<pre style="font-size:11px;">';
-											echo esc_html( print_r( $candidates_debug, true ) );
-											echo '</pre>';
-										}
-									echo '</div>';
+									// DEBUG: Log dei campi trovati (rimosso dalla visualizzazione frontend)
+									// Il debug ora è solo nei log del server
 									
 								echo '</td>';
 							echo '</tr>';
@@ -1028,6 +1079,43 @@ class WCCDC_Admin {
 					}
 				});
 			});
+			
+			// Rimuovi campo manuale (link)
+			$('#wccdc-remove-manual-link').on('click', function(e) {
+				e.preventDefault();
+				
+				var $link = $(this);
+				var $spinner = $link.next('.spinner');
+				var $message = $('#wccdc-remove-message');
+				
+				$spinner.addClass('is-active');
+				$message.text('');
+				
+				$.ajax({
+					url: ajaxurl,
+					type: 'POST',
+					data: {
+						action: 'wccdc_remove_manual_field',
+						nonce: '<?php echo wp_create_nonce( 'wccdc-remove-manual-field' ); ?>'
+					},
+					success: function(response) {
+						$spinner.removeClass('is-active');
+						if (response.success) {
+							$message.html('<span style="color:#46b450;">' + response.data.message + '</span>');
+							// Ricarica la pagina dopo 1.5 secondi
+							setTimeout(function() {
+								location.reload();
+							}, 1500);
+						} else {
+							$message.html('<span style="color:#dc3232;">' + response.data.message + '</span>');
+						}
+					},
+					error: function() {
+						$spinner.removeClass('is-active');
+						$message.html('<span style="color:#dc3232;">Errore durante la rimozione</span>');
+					}
+				});
+			});
 		});
 		</script>
 		<?php
@@ -1065,6 +1153,26 @@ class WCCDC_Admin {
 		
 		wp_send_json_success( array(
 			'message' => __( 'Scansione completata. La pagina verrà ricaricata.', 'ilghera-carta-della-cultura-for-woocommerce' )
+		) );
+	}
+	
+	/**
+	 * AJAX callback per rimuovere un campo manuale
+	 *
+	 * @return void
+	 */
+	public function remove_manual_field_callback() {
+		if ( ! check_ajax_referer( 'wccdc-remove-manual-field', 'nonce', false ) ) {
+			wp_die( 'Nonce verification failed', 403 );
+		}
+		
+		// Reimposta il campo ISBN a "none"
+		update_option( 'wccdc-isbn-field', 'none' );
+		// Cancella la fonte salvata per il campo manuale
+		delete_option( 'wccdc-isbn-source-for-custom' );
+		
+		wp_send_json_success( array(
+			'message' => __( 'Campo manuale rimosso. La pagina verrà ricaricata.', 'ilghera-carta-della-cultura-for-woocommerce' )
 		) );
 	}
 	
@@ -1251,6 +1359,20 @@ class WCCDC_Admin {
 				update_option( 'wccdc-custom-isbn-field-value', $custom_field );
 				// Usa il valore personalizzato come campo ISBN effettivo
 				update_option( 'wccdc-isbn-field', $custom_field );
+				// Salva la fonte corrente per questo campo manuale
+				update_option( 'wccdc-isbn-source-for-custom', $wccdc_isbn_source );
+			} elseif ( $wccdc_isbn_field !== 'none' && $wccdc_isbn_field !== 'custom' ) {
+				// Se è un campo manuale (non inizia con meta: o attribute:)
+				if ( strpos( $wccdc_isbn_field, 'meta:' ) !== 0 && strpos( $wccdc_isbn_field, 'attribute:' ) !== 0 ) {
+					// Salva la fonte corrente per questo campo manuale
+					update_option( 'wccdc-isbn-source-for-custom', $wccdc_isbn_source );
+				} else {
+					// Se è un campo automatico (meta: o attribute:), cancella la fonte salvata
+					delete_option( 'wccdc-isbn-source-for-custom' );
+				}
+			} else {
+				// Se è "none", cancella la fonte salvata
+				delete_option( 'wccdc-isbn-source-for-custom' );
 			}
 			
 			/*Conversione in coupon*/

@@ -186,7 +186,7 @@ class WCCDC_Soap_Client {
 				$meta_key = substr( $isbn_field, 5 );
 				$isbn = $product->get_meta( $meta_key );
 			} elseif ( strpos( $isbn_field, 'attribute:' ) === 0 ) {
-				// Attributo di prodotto
+				// Attributo di prodotto (globale)
 				$taxonomy = substr( $isbn_field, 10 );
 				$isbn = $product->get_attribute( $taxonomy );
 				// Se l'attributo è vuoto, prova a ottenere il termine
@@ -197,8 +197,49 @@ class WCCDC_Soap_Client {
 					}
 				}
 			} else {
-				// Fallback: prova come meta field
-				$isbn = $product->get_meta( $isbn_field );
+				// Inserimento manuale: normalizza il nome
+				$field_lower = strtolower( trim( $isbn_field ) );
+				
+				// 1. Prova come meta field (case-insensitive)
+				$meta_keys = $product->get_meta_data();
+				foreach ( $meta_keys as $meta ) {
+					if ( strtolower( $meta->key ) === $field_lower ) {
+						$isbn = $meta->value;
+						break;
+					}
+				}
+				
+				// 2. Se non trovato come meta, prova come attributo
+				if ( empty( $isbn ) ) {
+					// Per attributi globali: aggiungi automaticamente 'pa_' se non presente
+					$taxonomy = $field_lower;
+					if ( strpos( $taxonomy, 'pa_' ) !== 0 ) {
+						$taxonomy = 'pa_' . $taxonomy;
+					}
+					
+					// Prova con il prefisso pa_
+					$isbn = $product->get_attribute( $taxonomy );
+					if ( empty( $isbn ) ) {
+						$terms = wp_get_post_terms( $product->get_id(), $taxonomy );
+						if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+							$isbn = $terms[0]->name;
+						}
+					}
+					
+					// Se ancora vuoto, prova senza pa_ (attributo personalizzato di prodotto)
+					if ( empty( $isbn ) ) {
+						$taxonomy = $field_lower;
+						if ( strpos( $taxonomy, 'pa_' ) === 0 ) {
+							$taxonomy = substr( $taxonomy, 3 );
+						}
+						$isbn = $product->get_attribute( $taxonomy );
+						if ( empty( $isbn ) ) {
+							// Per attributi personalizzati, cerca nei meta con prefisso 'attribute_'
+							$attribute_meta_key = 'attribute_' . $taxonomy;
+							$isbn = $product->get_meta( $attribute_meta_key );
+						}
+					}
+				}
 			}
 
 			if ( ! empty( $isbn ) ) {
