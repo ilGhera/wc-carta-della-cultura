@@ -495,6 +495,16 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 							/*Validazione buono*/
 							$operation = $soap_client->confirm( $order_id );
 
+							// Se la confirm ha successo, chiama InsertISBN
+							if ( is_object( $operation ) && 'OK' === $operation->checkResp->esito ) {
+								$isbn_operation = $soap_client->insert_isbn( $order_id );
+								
+								if ( ! is_object( $isbn_operation ) || 'OK' !== $isbn_operation->checkResp->esito ) {
+									// Se InsertISBN fallisce, considera l'operazione fallita
+									$output = isset( $isbn_operation->checkResp->esito ) ? $isbn_operation->checkResp->esito : __( 'Errore nell\'invio ISBN', 'ilghera-carta-della-cultura-for-woocommerce' );
+									throw new Exception( $output );
+								}
+							}
 						}
 
 						if ( ( is_object( $operation ) && 'OK' === $operation->checkResp->esito ) || $on_hold ) {
@@ -530,7 +540,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 						}
 					} catch ( Exception $e ) {
 
-						$output = $e->detail->FaultVoucher->exceptionMessage;
+						$output = $e->detail->FaultVoucher->exceptionMessage ?? $e->getMessage();
 
 					}
 				}

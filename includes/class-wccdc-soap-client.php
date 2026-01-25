@@ -303,22 +303,15 @@ class WCCDC_Soap_Client {
 	public function check( $value = 1, $order_id = null ) {
 		error_log('WCCDC DEBUG check START - Operation type: ' . $value . ', Order ID: ' . $order_id . ', Voucher: ' . $this->codice_voucher . ', Import: ' . $this->import);
 		
-		$isbn = $order_id ? $this->get_isbn_from_order( $order_id ) : null;
-		error_log('WCCDC DEBUG check - ISBN retrieved: ' . ($isbn ? $isbn : 'NULL'));
-		
+		// Secondo il WSDL, Check richiede solo tipoOperazione e codiceVoucher
+		// partitaIvaEsercente è opzionale, importo, tipoBene e codiceISBN non sono previsti
 		$check_data = array(
 			'tipoOperazione' => $value,
 			'codiceVoucher'  => $this->codice_voucher,
-			'importo'        => $this->import,
-			'tipoBene'       => 'L', // Sempre "L" per libri
 		);
 		
-		if ( ! empty( $isbn ) ) {
-			$check_data['codiceISBN'] = $isbn;
-			error_log('WCCDC DEBUG check - Adding codiceISBN to request: ' . $isbn);
-		} else {
-			error_log('WCCDC DEBUG check - No ISBN to add to request');
-		}
+		// partitaIvaEsercente è opzionale, non lo inviamo per ora
+		// $check_data['partitaIvaEsercente'] = '';
 		
 		error_log('WCCDC DEBUG check - Request data: ' . print_r($check_data, true));
 
@@ -344,22 +337,13 @@ class WCCDC_Soap_Client {
 	public function confirm( $order_id = null ) {
 		error_log('WCCDC DEBUG confirm START - Order ID: ' . $order_id . ', Voucher: ' . $this->codice_voucher . ', Import: ' . $this->import);
 		
-		$isbn = $order_id ? $this->get_isbn_from_order( $order_id ) : null;
-		error_log('WCCDC DEBUG confirm - ISBN retrieved: ' . ($isbn ? $isbn : 'NULL'));
-		
+		// Secondo il WSDL, Confirm richiede tipoOperazione, codiceVoucher e importo
+		// tipoBene e codiceISBN non sono previsti
 		$confirm_data = array(
 			'tipoOperazione' => '1',
 			'codiceVoucher'  => $this->codice_voucher,
 			'importo'        => $this->import,
-			'tipoBene'       => 'L', // Sempre "L" per libri
 		);
-		
-		if ( ! empty( $isbn ) ) {
-			$confirm_data['codiceISBN'] = $isbn;
-			error_log('WCCDC DEBUG confirm - Adding codiceISBN to request: ' . $isbn);
-		} else {
-			error_log('WCCDC DEBUG confirm - No ISBN to add to request');
-		}
 		
 		error_log('WCCDC DEBUG confirm - Request data: ' . print_r($confirm_data, true));
 
@@ -377,5 +361,54 @@ class WCCDC_Soap_Client {
 		}
 	}
 
+	/**
+	 * Chiamata InsertISBN per inviare i dettagli ISBN dopo la confirm
+	 *
+	 * @param int|null $order_id ID dell'ordine per ottenere ISBN.
+	 * @return mixed
+	 */
+	public function insert_isbn( $order_id = null ) {
+		error_log('WCCDC DEBUG insert_isbn START - Order ID: ' . $order_id . ', Voucher: ' . $this->codice_voucher . ', Import: ' . $this->import);
+		
+		$isbn = $order_id ? $this->get_isbn_from_order( $order_id ) : null;
+		error_log('WCCDC DEBUG insert_isbn - ISBN retrieved: ' . ($isbn ? $isbn : 'NULL'));
+		
+		// Secondo il WSDL, InsertISBN richiede codiceVoucher, tipoOperazione e listaISBN
+		// listaISBN è un array di DettaglioIsbnBean (importo e isbn)
+		$insert_data = array(
+			'codiceVoucher'  => $this->codice_voucher,
+			'tipoOperazione' => '1',
+		);
+		
+		if ( ! empty( $isbn ) ) {
+			// Crea listaISBN con un solo elemento
+			$insert_data['listaISBN'] = array(
+				'dettaglioISBN' => array(
+					array(
+						'importo' => $this->import,
+						'isbn'    => $isbn,
+					)
+				)
+			);
+			error_log('WCCDC DEBUG insert_isbn - Adding listaISBN with ISBN: ' . $isbn . ', Import: ' . $this->import);
+		} else {
+			error_log('WCCDC DEBUG insert_isbn - No ISBN to add to request');
+		}
+		
+		error_log('WCCDC DEBUG insert_isbn - Request data: ' . print_r($insert_data, true));
+
+		try {
+			$response = $this->soap_client()->InsertISBN(
+				array(
+					'checkReq' => $insert_data,
+				)
+			);
+			error_log('WCCDC DEBUG insert_isbn - SOAP call successful');
+			return $response;
+		} catch (Exception $e) {
+			error_log('WCCDC DEBUG insert_isbn - SOAP Exception: ' . $e->getMessage());
+			throw $e;
+		}
+	}
 }
 
