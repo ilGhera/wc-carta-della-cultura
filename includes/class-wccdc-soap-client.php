@@ -153,21 +153,29 @@ class WCCDC_Soap_Client {
 	 * @return string|null ISBN o null se non trovato
 	 */
 	private function get_isbn_from_order( $order_id ) {
+		error_log('WCCDC DEBUG get_isbn_from_order START - Order ID: ' . $order_id);
+		
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
+			error_log('WCCDC DEBUG get_isbn_from_order - Order not found');
 			return null;
 		}
 
 		// Ottieni il campo ISBN configurato
 		$isbn_field = get_option( 'wccdc-isbn-field' );
+		error_log('WCCDC DEBUG get_isbn_from_order - ISBN field setting: ' . $isbn_field);
+		
 		if ( empty( $isbn_field ) || $isbn_field === 'none' ) {
+			error_log('WCCDC DEBUG get_isbn_from_order - ISBN field is none or empty');
 			return null;
 		}
 
 		// Se è un campo personalizzato (custom)
 		if ( $isbn_field === 'custom' ) {
 			$isbn_field = get_option( 'wccdc-custom-isbn-field-value' );
+			error_log('WCCDC DEBUG get_isbn_from_order - Custom field value: ' . $isbn_field);
 			if ( empty( $isbn_field ) ) {
+				error_log('WCCDC DEBUG get_isbn_from_order - Custom field is empty');
 				return null;
 			}
 		}
@@ -175,83 +183,112 @@ class WCCDC_Soap_Client {
 		foreach ( $order->get_items() as $item ) {
 			$product = $item->get_product();
 			if ( ! $product ) {
+				error_log('WCCDC DEBUG get_isbn_from_order - Product not found in item');
 				continue;
 			}
 
+			error_log('WCCDC DEBUG get_isbn_from_order - Processing product ID: ' . $product->get_id());
+			
 			$isbn = null;
 			
 			// Determina se è un meta field o un attributo
 			if ( strpos( $isbn_field, 'meta:' ) === 0 ) {
 				// Campo meta
 				$meta_key = substr( $isbn_field, 5 );
+				error_log('WCCDC DEBUG get_isbn_from_order - Meta field search, key: ' . $meta_key);
 				$isbn = $product->get_meta( $meta_key );
+				error_log('WCCDC DEBUG get_isbn_from_order - Meta value found: ' . $isbn);
 			} elseif ( strpos( $isbn_field, 'attribute:' ) === 0 ) {
 				// Attributo di prodotto (globale)
 				$taxonomy = substr( $isbn_field, 10 );
+				error_log('WCCDC DEBUG get_isbn_from_order - Attribute field search, taxonomy: ' . $taxonomy);
 				$isbn = $product->get_attribute( $taxonomy );
+				error_log('WCCDC DEBUG get_isbn_from_order - Attribute value found: ' . $isbn);
 				// Se l'attributo è vuoto, prova a ottenere il termine
 				if ( empty( $isbn ) ) {
 					$terms = wp_get_post_terms( $product->get_id(), $taxonomy );
 					if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
 						$isbn = $terms[0]->name;
+						error_log('WCCDC DEBUG get_isbn_from_order - Term value found: ' . $isbn);
 					}
 				}
 			} else {
 				// Inserimento manuale: normalizza il nome
 				$field_lower = strtolower( trim( $isbn_field ) );
+				error_log('WCCDC DEBUG get_isbn_from_order - Manual field search, normalized: ' . $field_lower);
 				
 				// 1. Prova come meta field (case-insensitive)
 				$meta_keys = $product->get_meta_data();
+				error_log('WCCDC DEBUG get_isbn_from_order - Product meta keys count: ' . count($meta_keys));
 				foreach ( $meta_keys as $meta ) {
 					if ( strtolower( $meta->key ) === $field_lower ) {
 						$isbn = $meta->value;
+						error_log('WCCDC DEBUG get_isbn_from_order - Found in meta: key=' . $meta->key . ', value=' . $isbn);
 						break;
 					}
 				}
 				
 				// 2. Se non trovato come meta, prova come attributo
 				if ( empty( $isbn ) ) {
+					error_log('WCCDC DEBUG get_isbn_from_order - Not found in meta, trying attribute');
 					// Per attributi globali: aggiungi automaticamente 'pa_' se non presente
 					$taxonomy = $field_lower;
 					if ( strpos( $taxonomy, 'pa_' ) !== 0 ) {
 						$taxonomy = 'pa_' . $taxonomy;
 					}
+					error_log('WCCDC DEBUG get_isbn_from_order - Trying taxonomy with pa_: ' . $taxonomy);
 					
 					// Prova con il prefisso pa_
 					$isbn = $product->get_attribute( $taxonomy );
+					error_log('WCCDC DEBUG get_isbn_from_order - Attribute value with pa_: ' . $isbn);
 					if ( empty( $isbn ) ) {
 						$terms = wp_get_post_terms( $product->get_id(), $taxonomy );
 						if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
 							$isbn = $terms[0]->name;
+							error_log('WCCDC DEBUG get_isbn_from_order - Term value with pa_: ' . $isbn);
 						}
 					}
 					
 					// Se ancora vuoto, prova senza pa_ (attributo personalizzato di prodotto)
 					if ( empty( $isbn ) ) {
+						error_log('WCCDC DEBUG get_isbn_from_order - Trying without pa_ prefix');
 						$taxonomy = $field_lower;
 						if ( strpos( $taxonomy, 'pa_' ) === 0 ) {
 							$taxonomy = substr( $taxonomy, 3 );
 						}
+						error_log('WCCDC DEBUG get_isbn_from_order - Trying taxonomy: ' . $taxonomy);
 						$isbn = $product->get_attribute( $taxonomy );
+						error_log('WCCDC DEBUG get_isbn_from_order - Attribute value without pa_: ' . $isbn);
 						if ( empty( $isbn ) ) {
 							// Per attributi personalizzati, cerca nei meta con prefisso 'attribute_'
 							$attribute_meta_key = 'attribute_' . $taxonomy;
+							error_log('WCCDC DEBUG get_isbn_from_order - Trying attribute meta: ' . $attribute_meta_key);
 							$isbn = $product->get_meta( $attribute_meta_key );
+							error_log('WCCDC DEBUG get_isbn_from_order - Attribute meta value: ' . $isbn);
 						}
 					}
 				}
 			}
 
 			if ( ! empty( $isbn ) ) {
-				// Pulisci il valore (rimuovi spazi, trattini)
+				error_log('WCCDC DEBUG get_isbn_from_order - Raw ISBN found: ' . $isbn);
+				// Pulisci il valore (rimuovi spazi, trattini) e mantieni solo numeri
 				$clean_isbn = preg_replace( '/[^0-9]/', '', $isbn );
-				// Verifica che sia un ISBN valido (13 cifre)
-				if ( preg_match( '/^[0-9]{13}$/', $clean_isbn ) ) {
+				error_log('WCCDC DEBUG get_isbn_from_order - Cleaned ISBN: ' . $clean_isbn);
+				// Non validiamo la lunghezza, lasciamo che sia il server SOAP a farlo
+				// Invia sempre l'ISBN pulito se non vuoto
+				if ( ! empty( $clean_isbn ) ) {
+					error_log('WCCDC DEBUG get_isbn_from_order - Returning ISBN: ' . $clean_isbn . ' (' . strlen($clean_isbn) . ' digits)');
 					return $clean_isbn;
+				} else {
+					error_log('WCCDC DEBUG get_isbn_from_order - Cleaned ISBN is empty');
 				}
+			} else {
+				error_log('WCCDC DEBUG get_isbn_from_order - No ISBN found for this product');
 			}
 		}
 
+		error_log('WCCDC DEBUG get_isbn_from_order - No ISBN found in any product');
 		return null;
 	}
 
@@ -264,7 +301,10 @@ class WCCDC_Soap_Client {
 	 * @param  int|null $order_id ID dell'ordine per ottenere ISBN.
 	 */
 	public function check( $value = 1, $order_id = null ) {
+		error_log('WCCDC DEBUG check START - Operation type: ' . $value . ', Order ID: ' . $order_id . ', Voucher: ' . $this->codice_voucher . ', Import: ' . $this->import);
+		
 		$isbn = $order_id ? $this->get_isbn_from_order( $order_id ) : null;
+		error_log('WCCDC DEBUG check - ISBN retrieved: ' . ($isbn ? $isbn : 'NULL'));
 		
 		$check_data = array(
 			'tipoOperazione' => $value,
@@ -275,15 +315,25 @@ class WCCDC_Soap_Client {
 		
 		if ( ! empty( $isbn ) ) {
 			$check_data['codiceISBN'] = $isbn;
+			error_log('WCCDC DEBUG check - Adding codiceISBN to request: ' . $isbn);
+		} else {
+			error_log('WCCDC DEBUG check - No ISBN to add to request');
 		}
+		
+		error_log('WCCDC DEBUG check - Request data: ' . print_r($check_data, true));
 
-		$check = $this->soap_client()->Check(
-			array(
-				'checkReq' => $check_data,
-			)
-		);
-
-		return $check;
+		try {
+			$check = $this->soap_client()->Check(
+				array(
+					'checkReq' => $check_data,
+				)
+			);
+			error_log('WCCDC DEBUG check - SOAP call successful');
+			return $check;
+		} catch (Exception $e) {
+			error_log('WCCDC DEBUG check - SOAP Exception: ' . $e->getMessage());
+			throw $e;
+		}
 	}
 
 	/**
@@ -292,7 +342,10 @@ class WCCDC_Soap_Client {
 	 * @param int|null $order_id ID dell'ordine per ottenere ISBN.
 	 */
 	public function confirm( $order_id = null ) {
+		error_log('WCCDC DEBUG confirm START - Order ID: ' . $order_id . ', Voucher: ' . $this->codice_voucher . ', Import: ' . $this->import);
+		
 		$isbn = $order_id ? $this->get_isbn_from_order( $order_id ) : null;
+		error_log('WCCDC DEBUG confirm - ISBN retrieved: ' . ($isbn ? $isbn : 'NULL'));
 		
 		$confirm_data = array(
 			'tipoOperazione' => '1',
@@ -303,15 +356,25 @@ class WCCDC_Soap_Client {
 		
 		if ( ! empty( $isbn ) ) {
 			$confirm_data['codiceISBN'] = $isbn;
+			error_log('WCCDC DEBUG confirm - Adding codiceISBN to request: ' . $isbn);
+		} else {
+			error_log('WCCDC DEBUG confirm - No ISBN to add to request');
 		}
+		
+		error_log('WCCDC DEBUG confirm - Request data: ' . print_r($confirm_data, true));
 
-		$confirm = $this->soap_client()->Confirm(
-			array(
-				'checkReq' => $confirm_data,
-			)
-		);
-
-		return $confirm;
+		try {
+			$confirm = $this->soap_client()->Confirm(
+				array(
+					'checkReq' => $confirm_data,
+				)
+			);
+			error_log('WCCDC DEBUG confirm - SOAP call successful');
+			return $confirm;
+		} catch (Exception $e) {
+			error_log('WCCDC DEBUG confirm - SOAP Exception: ' . $e->getMessage());
+			throw $e;
+		}
 	}
 
 }
