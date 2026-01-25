@@ -378,9 +378,21 @@ class WCCDC_Admin {
 		error_log('WCCDC ISBN META KEYS FOUND: ' . print_r($meta_keys, true));
 
 		foreach ( $meta_keys as $meta_key ) {
-			// Non serve più controllare i valori, basta che il nome contenga ISBN
+			// Cerca un valore di esempio reale dal database
+			$example_value = $wpdb->get_var($wpdb->prepare(
+				"SELECT pm.meta_value 
+				 FROM {$wpdb->postmeta} pm 
+				 INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID 
+				 WHERE p.post_type = 'product' 
+				   AND pm.meta_key = %s 
+				   AND pm.meta_value != '' 
+				 LIMIT 1",
+				$meta_key
+			));
+
+			// Mostra solo il nome del campo meta, senza parentesi
 			$candidates['meta'][ $meta_key ] = array(
-				'sample' => '(Campo con nome contenente ISBN)',
+				'sample' => $meta_key,
 				'count'  => 0,
 				'type'   => 'meta',
 				'forced' => true,
@@ -787,11 +799,8 @@ class WCCDC_Admin {
 											foreach ( $meta_candidates as $meta_key => $data ) {
 												$sample = $data['sample'];
 												$truncated_sample = strlen( $sample ) > 20 ? substr( $sample, 0, 20 ) . '...' : $sample;
-												$option_label = sprintf(
-													'%s (%s)',
-													esc_html( $meta_key ),
-													esc_html( $truncated_sample )
-												);
+												// Mostra solo il nome del campo meta
+												$option_label = esc_html( $meta_key );
 												echo '<option value="meta:' . esc_attr( $meta_key ) . '"' . selected( $wccdc_isbn_field, 'meta:' . $meta_key, false ) . '>' . 
 													 $option_label . '</option>';
 											}
