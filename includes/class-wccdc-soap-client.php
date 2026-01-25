@@ -270,11 +270,12 @@ class WCCDC_Soap_Client {
 			// Inserimento manuale: normalizza il nome
 			$field_lower = strtolower( trim( $isbn_field ) );
 			
-			// 1. Prova come meta field (case-insensitive)
+			// 1. Prova come meta field usando get_meta() (case-insensitive)
+			// Ottieni tutti i meta keys del prodotto
 			$meta_keys = $product->get_meta_data();
 			foreach ( $meta_keys as $meta ) {
 				if ( strtolower( $meta->key ) === $field_lower ) {
-					$isbn = $meta->value;
+					$isbn = $product->get_meta( $meta->key );
 					break;
 				}
 			}

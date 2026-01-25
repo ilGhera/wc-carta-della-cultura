@@ -378,18 +378,23 @@ class WCCDC_Admin {
 		error_log('WCCDC ISBN META KEYS FOUND: ' . print_r($meta_keys, true));
 
 		foreach ( $meta_keys as $meta_key ) {
-			// Cerca un valore di esempio reale dal database
-			$example_value = $wpdb->get_var($wpdb->prepare(
-				"SELECT pm.meta_value 
-				 FROM {$wpdb->postmeta} pm 
-				 INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID 
-				 WHERE p.post_type = 'product' 
-				   AND pm.meta_key = %s 
-				   AND pm.meta_value != '' 
-				 LIMIT 1",
-				$meta_key
+			// Cerca un valore di esempio reale usando i metodi CRUD di WooCommerce
+			$example_value = '';
+			
+			// Ottieni un prodotto che ha questo meta
+			$products = wc_get_products(array(
+				'limit'    => 1,
+				'meta_key' => $meta_key,
+				'return'   => 'ids',
 			));
-
+			
+			if (!empty($products)) {
+				$product = wc_get_product($products[0]);
+				if ($product) {
+					$example_value = $product->get_meta($meta_key);
+				}
+			}
+			
 			// Mostra solo il nome del campo meta, senza parentesi
 			$candidates['meta'][ $meta_key ] = array(
 				'sample' => $meta_key,
@@ -810,14 +815,9 @@ class WCCDC_Admin {
 										if ( $isbn_source === 'attribute' && ! empty( $attribute_candidates ) ) {
 											echo '<optgroup label="' . esc_attr__( 'Attributi di prodotto', 'ilghera-carta-della-cultura-for-woocommerce' ) . '">';
 											foreach ( $attribute_candidates as $taxonomy => $data ) {
-												$sample = $data['sample'];
-												$truncated_sample = strlen( $sample ) > 20 ? substr( $sample, 0, 20 ) . '...' : $sample;
 												$label = isset( $data['label'] ) ? $data['label'] : $taxonomy;
-												$option_label = sprintf(
-													'%s (%s)',
-													esc_html( $label ),
-													esc_html( $truncated_sample )
-												);
+												// Mostra solo il nome dell'attributo, senza parentesi
+												$option_label = esc_html( $label );
 												echo '<option value="attribute:' . esc_attr( $taxonomy ) . '"' . selected( $wccdc_isbn_field, 'attribute:' . $taxonomy, false ) . '>' . 
 													 $option_label . '</option>';
 											}
