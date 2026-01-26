@@ -138,59 +138,71 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 		}
 
 		// Validazione ISBN (se configurato)
+		$isbn_primary_source = get_option( 'wccdc-isbn-primary-source', 'wc_native' );
 		$isbn_field = get_option( 'wccdc-isbn-field' );
-		if ( ! empty( $isbn_field ) && $isbn_field !== 'none' ) {
-			// Se è un campo personalizzato (custom)
-			if ( $isbn_field === 'custom' ) {
-				$isbn_field = get_option( 'wccdc-custom-isbn-field-value' );
-				if ( empty( $isbn_field ) ) {
-					// Campo personalizzato vuoto: nascondi gateway per sicurezza
-					unset( $available_gateways['carta-della-cultura'] );
-					return $available_gateways;
-				}
+		
+		// Flag per verificare che tutti i prodotti abbiano ISBN valido
+		$all_have_valid_isbn = true;
+		
+		// Verifica ISBN per ogni prodotto nel carrello
+		foreach ( WC()->cart->get_cart_contents() as $cart_item_key => $values ) {
+			$product = $values['data'];
+			if ( ! is_a( $product, 'WC_Product' ) ) {
+				continue;
 			}
 			
-			// Flag per verificare che tutti i prodotti abbiano ISBN valido
-			$all_have_valid_isbn = true;
+			$isbn = null;
+			$clean_isbn = null;
 			
-			// Verifica ISBN per ogni prodotto nel carrello
-			foreach ( WC()->cart->get_cart_contents() as $cart_item_key => $values ) {
-				$product = $values['data'];
-				if ( ! is_a( $product, 'WC_Product' ) ) {
-					continue;
+			// 1. Se fonte principale è "wc_native", cerca il campo nativo WooCommerce
+			if ( $isbn_primary_source === 'wc_native' ) {
+				if ( method_exists( $product, 'get_global_unique_id' ) ) {
+					$isbn = $product->get_global_unique_id();
+				}
+			} 
+			// 2. Se fonte principale è "custom" e campo ISBN configurato
+			elseif ( $isbn_primary_source === 'custom' && ! empty( $isbn_field ) && $isbn_field !== 'none' ) {
+				// Se è un campo personalizzato (custom)
+				if ( $isbn_field === 'custom' ) {
+					$isbn_field = get_option( 'wccdc-custom-isbn-field-value' );
+					if ( empty( $isbn_field ) ) {
+						// Campo personalizzato vuoto: nascondi gateway per sicurezza
+						unset( $available_gateways['carta-della-cultura'] );
+						return $available_gateways;
+					}
 				}
 				
 				// Ottieni ISBN usando la funzione pubblica
 				$soap_client = new WCCDC_Soap_Client( '', 0 ); // Voucher e importo non necessari per questa chiamata
 				$isbn = $soap_client->get_isbn_from_product( $product, $isbn_field );
-				
-				if ( empty( $isbn ) ) {
-					// ISBN non trovato: prodotto senza ISBN valido
-					$all_have_valid_isbn = false;
-					break;
-				}
-				
-				// Pulisci ISBN (rimuovi spazi, trattini)
-				$clean_isbn = preg_replace( '/[^0-9]/', '', $isbn );
-				// Valida lunghezza (13 cifre)
-				if ( strlen( $clean_isbn ) !== 13 ) {
-					// ISBN non valido
-					$all_have_valid_isbn = false;
-					break;
-				}
-				// Valida checksum ISBN-13
-				if ( ! self::validate_isbn_13( $clean_isbn ) ) {
-					// ISBN checksum non valido
-					$all_have_valid_isbn = false;
-					break;
-				}
 			}
 			
-			// Se almeno un prodotto non ha ISBN valido, nascondi gateway
-			if ( ! $all_have_valid_isbn ) {
-				unset( $available_gateways['carta-della-cultura'] );
-				return $available_gateways;
+			// Se non abbiamo ISBN, nascondi gateway
+			if ( empty( $isbn ) ) {
+				$all_have_valid_isbn = false;
+				break;
 			}
+			
+			// Pulisci ISBN (rimuovi spazi, trattini)
+			$clean_isbn = preg_replace( '/[^0-9]/', '', $isbn );
+			// Valida lunghezza (13 cifre)
+			if ( strlen( $clean_isbn ) !== 13 ) {
+				// ISBN non valido
+				$all_have_valid_isbn = false;
+				break;
+			}
+			// Valida checksum ISBN-13
+			if ( ! self::validate_isbn_13( $clean_isbn ) ) {
+				// ISBN checksum non valido
+				$all_have_valid_isbn = false;
+				break;
+			}
+		}
+		
+		// Se almeno un prodotto non ha ISBN valido, nascondi gateway
+		if ( ! $all_have_valid_isbn ) {
+			unset( $available_gateways['carta-della-cultura'] );
+			return $available_gateways;
 		}
 
 		return $available_gateways;
