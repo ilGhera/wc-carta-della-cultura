@@ -786,8 +786,8 @@ class WCCDC_Admin {
 								echo '</td>';
 							echo '</tr>';
 							
-							// Sezione campi personalizzati/attributi (visibile solo se selezionata fonte "custom" E premium attivo)
-							$show_custom_section = ( $isbn_primary_source === 'custom' && $is_premium );
+							// Sezione campi personalizzati/attributi (visibile solo se selezionata fonte "custom")
+							$show_custom_section = ( $isbn_primary_source === 'custom' );
 							echo '<tr id="wccdc-custom-isbn-section" style="' . ( $show_custom_section ? '' : 'display:none;' ) . '">';
 								echo '<th scope="row">' . esc_html__( 'Configurazione campo personalizzato', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 								echo '<td>';
