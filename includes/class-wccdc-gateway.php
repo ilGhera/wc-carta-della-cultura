@@ -150,6 +150,9 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 				}
 			}
 			
+			// Flag per verificare che tutti i prodotti abbiano ISBN valido
+			$all_have_valid_isbn = true;
+			
 			// Verifica ISBN per ogni prodotto nel carrello
 			foreach ( WC()->cart->get_cart_contents() as $cart_item_key => $values ) {
 				$product = $values['data'];
@@ -161,18 +164,26 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 				$soap_client = new WCCDC_Soap_Client( '', 0 ); // Voucher e importo non necessari per questa chiamata
 				$isbn = $soap_client->get_isbn_from_product( $product, $isbn_field );
 				
-				if ( ! empty( $isbn ) ) {
-					// Pulisci ISBN (rimuovi spazi, trattini)
-					$clean_isbn = preg_replace( '/[^0-9]/', '', $isbn );
-					// Valida lunghezza (13 cifre)
-					if ( strlen( $clean_isbn ) !== 13 ) {
-						// ISBN non valido: nascondi gateway
-						unset( $available_gateways['carta-della-cultura'] );
-						return $available_gateways;
-					}
+				if ( empty( $isbn ) ) {
+					// ISBN non trovato: prodotto senza ISBN valido
+					$all_have_valid_isbn = false;
+					break;
 				}
-				// Se ISBN non trovato, non blocchiamo: potrebbe essere un prodotto senza ISBN (es. prodotto fisico senza campo)
-				// Il plugin invierà InsertISBN senza listaISBN (OK fittizio)
+				
+				// Pulisci ISBN (rimuovi spazi, trattini)
+				$clean_isbn = preg_replace( '/[^0-9]/', '', $isbn );
+				// Valida lunghezza (13 cifre)
+				if ( strlen( $clean_isbn ) !== 13 ) {
+					// ISBN non valido
+					$all_have_valid_isbn = false;
+					break;
+				}
+			}
+			
+			// Se almeno un prodotto non ha ISBN valido, nascondi gateway
+			if ( ! $all_have_valid_isbn ) {
+				unset( $available_gateways['carta-della-cultura'] );
+				return $available_gateways;
 			}
 		}
 

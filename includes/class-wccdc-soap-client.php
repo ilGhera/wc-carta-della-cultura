@@ -227,11 +227,18 @@ class WCCDC_Soap_Client {
 				$clean_isbn = preg_replace( '/[^0-9]/', '', $isbn );
 				
 				if ( ! empty( $clean_isbn ) ) {
-					$isbn_list[] = array(
-						'isbn'    => $clean_isbn,
-						'importo' => $item_import,
-					);
-					error_log('WCCDC DEBUG get_isbn_list_from_order - Aggiunto ISBN: ' . $clean_isbn . ', Importo: ' . $item_import);
+					// Valida lunghezza ISBN (deve essere 13 cifre esatte)
+					if ( strlen( $clean_isbn ) === 13 ) {
+						$isbn_list[] = array(
+							'isbn'    => $clean_isbn,
+							'importo' => $item_import,
+						);
+						error_log('WCCDC DEBUG get_isbn_list_from_order - Aggiunto ISBN valido (13 cifre): ' . $clean_isbn . ', Importo: ' . $item_import);
+					} else {
+						error_log('WCCDC DEBUG get_isbn_list_from_order - ISBN non valido (lunghezza ' . strlen($clean_isbn) . ' cifre): ' . $clean_isbn);
+						// Lancia eccezione per bloccare l'ordine prima di spendere il buono
+						throw new Exception( sprintf( __( 'ISBN non valido: %s (attese 13 cifre, trovate %d)', 'ilghera-carta-della-cultura-for-woocommerce' ), $clean_isbn, strlen($clean_isbn) ) );
+					}
 				}
 			}
 		}
