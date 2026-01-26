@@ -575,10 +575,23 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 							// Se la confirm ha successo, chiama InsertISBN (gestisce internamente se ci sono ISBN)
 							if ( is_object( $operation ) && 'OK' === $operation->checkResp->esito ) {
 								$isbn_operation = $soap_client->insert_isbn( $order_id );
-								
-								if ( ! is_object( $isbn_operation ) || 'OK' !== $isbn_operation->checkResp->esito ) {
+									
+								// Gestione della risposta InsertISBN (struttura diversa da Confirm)
+								$isbn_esito = null;
+								if ( is_object( $isbn_operation ) ) {
+									// La risposta può avere diverse strutture:
+									// 1. $isbn_operation->esito (risposta diretta ValidazioneResponse)
+									// 2. $isbn_operation->checkResp->esito (per retrocompatibilità)
+									if ( isset( $isbn_operation->esito ) ) {
+										$isbn_esito = $isbn_operation->esito;
+									} elseif ( isset( $isbn_operation->checkResp->esito ) ) {
+										$isbn_esito = $isbn_operation->checkResp->esito;
+									}
+								}
+									
+								if ( 'OK' !== $isbn_esito ) {
 									// Se InsertISBN fallisce, considera l'operazione fallita
-									$output = isset( $isbn_operation->checkResp->esito ) ? $isbn_operation->checkResp->esito : __( 'Errore nell\'invio ISBN', 'ilghera-carta-della-cultura-for-woocommerce' );
+									$output = $isbn_esito ? $isbn_esito : __( 'Errore nell\'invio ISBN', 'ilghera-carta-della-cultura-for-woocommerce' );
 									throw new Exception( $output );
 								}
 							}

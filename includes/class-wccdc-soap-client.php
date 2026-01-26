@@ -502,7 +502,29 @@ class WCCDC_Soap_Client {
 				$validazione_request
 			);
 			error_log('WCCDC DEBUG insert_isbn - SOAP call successful');
-			return $response;
+			
+			// La risposta SOAP può essere un oggetto stdClass con proprietà 'esito' diretta
+			// oppure contenere un wrapper. Normalizziamo la risposta per avere sempre 'esito' a livello principale.
+			$normalized_response = new stdClass();
+			
+			if ( isset( $response->esito ) ) {
+				// Risposta diretta con esito
+				$normalized_response->esito = $response->esito;
+			} elseif ( isset( $response->ValidazioneResponse ) && isset( $response->ValidazioneResponse->esito ) ) {
+				// Risposta incapsulata in ValidazioneResponse
+				$normalized_response->esito = $response->ValidazioneResponse->esito;
+			} elseif ( isset( $response->checkResp ) && isset( $response->checkResp->esito ) ) {
+				// Per retrocompatibilità
+				$normalized_response->esito = $response->checkResp->esito;
+			} else {
+				// Se non troviamo esito, assumiamo errore
+				error_log('WCCDC DEBUG insert_isbn - Response structure unknown: ' . print_r($response, true));
+				$normalized_response->esito = 'ERRORE';
+			}
+			
+			error_log('WCCDC DEBUG insert_isbn - Normalized response esito: ' . $normalized_response->esito);
+			return $normalized_response;
+			
 		} catch (Exception $e) {
 			error_log('WCCDC DEBUG insert_isbn - SOAP Exception: ' . $e->getMessage());
 			// Log dettagliato dell'eccezione
