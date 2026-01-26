@@ -275,6 +275,14 @@ var wccdc_isbn_field = function() {
                 }
             });
             
+            // Mostra/nascondi al caricamento della pagina
+            $(document).ready(function() {
+                var selected = $('input[name="wccdc-isbn-primary-source"]:checked').val();
+                if (selected === 'custom') {
+                    $('#wccdc-custom-isbn-section').show();
+                }
+            });
+            
             // Mostra/nascondi campo manuale quando cambia la selezione
             $('select.wccdc-isbn-field').on('change', function() {
                 if ($(this).val() === 'custom') {

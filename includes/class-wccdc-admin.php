@@ -767,30 +767,20 @@ class WCCDC_Admin {
 								echo '<td>';
 									
 									$isbn_primary_source = get_option( 'wccdc-isbn-primary-source', 'wc_native' );
-									$is_premium = get_option( 'wccdc-premium-key' ) ? true : false;
 									
 									echo '<div style="margin-bottom:15px;">';
 										echo '<label style="display:block; margin-bottom:10px;">';
 											echo '<input type="radio" name="wccdc-isbn-primary-source" value="wc_native"' . checked( $isbn_primary_source, 'wc_native', false ) . ' /> ';
 											echo '<strong>' . esc_html__( 'Usa il campo nativo di WooCommerce (raccomandato)', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</strong>';
-											echo '<br><span class="description" style="margin-left:22px;">' . esc_html__( 'Utilizza il campo "Global Unique Identifier" integrato in WooCommerce (disponibile nella scheda prodotto sotto Inventory). Nessuna configurazione aggiuntiva richiesta.', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</span>';
+											echo '<br><span class="description" style="margin-left:22px;">' . esc_html__( 'Utilizza il campo "Global Unique Identifier" integrato in WooCommerce (disponibile nella scheda prodotto sotto Inventory).', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</span>';
 										echo '</label>';
 										
 										echo '<label style="display:block;">';
-											echo '<input type="radio" name="wccdc-isbn-primary-source" value="custom"' . checked( $isbn_primary_source, 'custom', false ) . ( $is_premium ? '' : ' disabled' ) . ' /> ';
+											echo '<input type="radio" name="wccdc-isbn-primary-source" value="custom"' . checked( $isbn_primary_source, 'custom', false ) . ' /> ';
 											echo '<strong>' . esc_html__( 'Usa un campo personalizzato o attributo', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</strong>';
-											if ( ! $is_premium ) {
-												echo ' <span style="color:#d63638; font-weight:bold;">(' . esc_html__( 'funzionalità premium', 'ilghera-carta-della-cultura-for-woocommerce' ) . ')</span>';
-											}
-											echo '<br><span class="description" style="margin-left:22px;">' . esc_html__( 'Scegli un campo meta o un attributo di prodotto che contiene l\'ISBN. Opzione utile se utilizzi plugin di terze parti per gestire codici a barre.', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</span>';
+											echo '<br><span class="description" style="margin-left:22px;">' . esc_html__( 'Scegli un campo meta o un attributo di prodotto che contiene l\'ISBN.', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</span>';
 										echo '</label>';
 										
-										if ( ! $is_premium ) {
-											echo '<p class="description" style="margin-top:10px; margin-left:22px;">';
-												echo '<a href="https://www.ilghera.com/product/woocommerce-carta-della-cultura-premium/" target="_blank" style="color:#2271b1; text-decoration:underline;">' . 
-													 esc_html__( 'Scopri la versione premium', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</a>';
-											echo '</p>';
-										}
 									echo '</div>';
 									
 								echo '</td>';
