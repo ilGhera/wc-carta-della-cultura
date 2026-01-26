@@ -255,3 +255,134 @@ var wccdc_exclude_shipping = function() {
 
 }
 wccdc_exclude_shipping();
+
+/**
+ * Gestione campo ISBN nella pagina opzioni
+ *
+ * @return void
+ */
+var wccdc_isbn_field = function() {
+    jQuery(function($){
+        $(document).ready(function() {
+            
+            // Mostra/nascondi campo manuale quando cambia la selezione
+            $('select.wccdc-isbn-field').on('change', function() {
+                if ($(this).val() === 'custom') {
+                    $('#wccdc-custom-isbn-field').show();
+                } else {
+                    $('#wccdc-custom-isbn-field').hide();
+                }
+            });
+            
+            // Aggiorna il dropdown quando cambia la fonte ISBN
+            $('input[name="wccdc-isbn-source"]').on('change', function() {
+                var source = $(this).val();
+                var $dropdown = $('select.wccdc-isbn-field');
+                var currentValue = $dropdown.val();
+                
+                // Ricarica la pagina per aggiornare il dropdown con i campi corretti
+                // Invia il form per salvare la selezione
+                var $form = $('form[name="wccdc-options"]');
+                if ($form.length === 0) {
+                    $form = $('form.wccdc-options');
+                }
+                // Assicurati che il nonce sia presente
+                if ($form.find('input[name="wccdc-settings-nonce"]').length === 0) {
+                    $form.append('<input type="hidden" name="wccdc-settings-nonce" value="' + (wccdcData.settingsNonce || '') + '">');
+                }
+                $form.append('<input type="hidden" name="wccdc-isbn-source-temp" value="' + source + '">');
+                $form.submit();
+            });
+            
+            // Riesamina campi ISBN
+            $('#wccdc-rescan-isbn').on('click', function(e) {
+                e.preventDefault();
+                
+                var $button = $(this);
+                var $spinner = $button.next('.spinner');
+                var $message = $('#wccdc-rescan-message');
+                
+                // Verifica che wccdcData sia disponibile
+                if (typeof wccdcData === 'undefined' || !wccdcData.rescanIsbnNonce) {
+                    $message.html('<span style="color:#dc3232;">Errore: configurazione non disponibile. Ricarica la pagina.</span>');
+                    return;
+                }
+                
+                $spinner.addClass('is-active');
+                $message.text('');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'wccdc_rescan_isbn',
+                        nonce: wccdcData.rescanIsbnNonce
+                    },
+                    success: function(response) {
+                        $spinner.removeClass('is-active');
+                        if (response.success) {
+                            $message.html('<span style="color:#46b450;">' + response.data.message + '</span>');
+                            // Ricarica la pagina dopo 1.5 secondi
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            $message.html('<span style="color:#dc3232;">' + response.data.message + '</span>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $spinner.removeClass('is-active');
+                        $message.html('<span style="color:#dc3232;">Errore durante la scansione: ' + error + '</span>');
+                        console.error('AJAX Error:', status, error);
+                    }
+                });
+            });
+            
+            // Rimuovi campo manuale (link)
+            $('#wccdc-remove-manual-link').on('click', function(e) {
+                e.preventDefault();
+                
+                var $link = $(this);
+                var $spinner = $link.next('.spinner');
+                var $message = $('#wccdc-remove-message');
+                
+                // Verifica che wccdcData sia disponibile
+                if (typeof wccdcData === 'undefined' || !wccdcData.removeManualFieldNonce) {
+                    $message.html('<span style="color:#dc3232;">Errore: configurazione non disponibile. Ricarica la pagina.</span>');
+                    return;
+                }
+                
+                $spinner.addClass('is-active');
+                $message.text('');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'wccdc_remove_manual_field',
+                        nonce: wccdcData.removeManualFieldNonce
+                    },
+                    success: function(response) {
+                        $spinner.removeClass('is-active');
+                        if (response.success) {
+                            $message.html('<span style="color:#46b450;">' + response.data.message + '</span>');
+                            // Ricarica la pagina dopo 1.5 secondi
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            $message.html('<span style="color:#dc3232;">' + response.data.message + '</span>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $spinner.removeClass('is-active');
+                        $message.html('<span style="color:#dc3232;">Errore durante la rimozione: ' + error + '</span>');
+                        console.error('AJAX Error:', status, error);
+                    }
+                });
+            });
+            
+        });
+    });
+}
+wccdc_isbn_field();

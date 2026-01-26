@@ -34,6 +34,7 @@ class WCCDC_Admin {
 		$this->sandbox = get_option( 'wccdc-sandbox' );
 
 		add_action( 'admin_init', array( $this, 'wccdc_save_settings' ) );
+		add_action( 'admin_init', array( $this, 'generate_cert_request' ) );
 		add_action( 'admin_init', array( $this, 'scan_isbn_fields' ) );
 		add_action( 'admin_menu', array( $this, 'register_options_page' ) );
 		add_action( 'wp_ajax_wccdc-delete-certificate', array( $this, 'delete_certificate_callback' ), 1 );
@@ -94,6 +95,253 @@ class WCCDC_Admin {
 		}
 
 		exit;
+
+	}
+
+	/**
+	 * Restituisce il nome esatto del bene Carta della Cultura partendo dallo slug
+	 *
+	 * @param  array  $beni      l'elenco dei beni di Carta della Cultura.
+	 * @param  string $bene_slug lo slug del bene.
+	 *
+	 * @return string
+	 */
+	public function get_bene_lable( $beni, $bene_slug ) {
+		return 'Libri'; // Sempre "Libri"
+	}
+
+	/**
+	 * Categoria per la verifica in fase di checkout
+	 *
+	 * @param  int   $n               il numero dell'elemento aggiunto.
+	 * @param  array $data            bene e categoria come chiave e valore.
+	 * @param  array $exclude_beni    buoni già abbinati a categorie WC (al momento non utilizzato).
+	 * @param  array $exclude_categories categorie già selezionate da escludere.
+	 *
+	 * @return mixed
+	 */
+	public function setup_cat( $n, $data = null, $exclude_beni = null, $exclude_categories = null ) {
+
+		echo '<li class="setup-cat cat-' . esc_attr( $n ) . '">';
+
+			$terms      = get_terms( 'product_cat' );
+			$term_value = is_array( $data ) && isset( $data['libri'] ) ? $data['libri'] : '';
+
+			// Se $exclude_categories non è fornito, calcolalo dalle categorie già selezionate nella pagina
+			if ( $exclude_categories === null ) {
+				$exclude_categories = array();
+				// Non possiamo accedere alle altre dropdown direttamente qui, quindi questo sarà gestito via JavaScript
+				// Ma per coerenza manteniamo il parametro
+			}
+
+			echo '<select name="wccdc-categories-' . esc_attr( $n ) . '" class="wccdc-field categories">';
+				echo '<option value="">Categoria WooCommerce</option>';
+
+			foreach ( $terms as $term ) {
+				// Escludi categorie già selezionate se specificato
+				if ( is_array( $exclude_categories ) && in_array( $term->term_id, $exclude_categories ) ) {
+					continue;
+				}
+				
+				echo '<option value="' . esc_attr( $term->term_id ) . '"' . ( intval( $term_value ) === $term->term_id ? ' selected="selected"' : '' ) . '>' . esc_html( $term->name ) . '</option>';
+			}
+			echo '</select>';
+
+			// Campo nascosto per salvare automaticamente il bene "libri"
+			echo '<input type="hidden" name="wccdc-beni-' . esc_attr( $n ) . '" value="libri">';
+
+			if ( 1 === intval( $n ) ) {
+
+				echo '<div class="add-cat-container">';
+					echo '<img class="add-cat" src="' . esc_url( WCCDC_URI . 'images/add-cat.png' ) . '">';
+					echo '<img class="add-cat-hover wccdc" src="' . esc_url( WCCDC_URI . 'images/add-cat-hover.png' ) . '">';
+				echo '</div>';
+
+			} else {
+
+				echo '<div class="remove-cat-container">';
+					echo '<img class="remove-cat" src="' . esc_url( WCCDC_URI . 'images/remove-cat.png' ) . '">';
+					echo '<img class="remove-cat-hover" src="' . esc_url( WCCDC_URI . 'images/remove-cat-hover.png' ) . '">';
+				echo '</div>';
+
+			}
+
+			echo '</li>';
+	}
+
+	/**
+	 * Aggiunge una nuova categoria per la verifica in fase di checkout
+	 *
+	 * @return void
+	 */
+	public function add_cat_callback() {
+
+		if ( isset( $_POST['add-cat-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['add-cat-nonce'] ) ), 'wccdc-add-cat-nonce' ) ) {
+
+			$number             = isset( $_POST['number'] ) ? sanitize_text_field( wp_unslash( $_POST['number'] ) ) : '';
+			$exclude_beni       = isset( $_POST['exclude-beni'] ) ? sanitize_text_field( wp_unslash( $_POST['exclude-beni'] ) ) : '';
+			$exclude_categories = isset( $_POST['exclude-categories'] ) ? array_map( 'intval', (array) $_POST['exclude-categories'] ) : array();
+
+			if ( $number ) {
+
+				$this->setup_cat( $number, null, $exclude_beni, $exclude_categories );
+
+			}
+		}
+
+		exit;
+	}
+
+	/**
+	 * Trasforma il contenuto di un certificato .pem in .der
+	 *
+	 * @param  string $pem_data il certificato .pem.
+	 *
+	 * @return string
+	 */
+	public function pem2der( $pem_data ) {
+
+		$begin    = '-----BEGIN CERTIFICATE REQUEST-----';
+		$end      = '-----END CERTIFICATE REQUEST-----';
+		$pem_data = substr( $pem_data, strpos( $pem_data, $begin ) + strlen( $begin ) );
+		$pem_data = substr( $pem_data, 0, strpos( $pem_data, $end ) );
+		$der      = base64_decode( $pem_data );
+
+		return $der;
+	}
+
+	/**
+	 * Download della richiesta di certificato da utilizzare sul portale Carta della Cultura
+	 * Se non presenti, genera la chiave e la richiesta di certificato .der,
+	 *
+	 * @return void
+	 */
+	public function generate_cert_request() {
+
+		if ( isset( $_POST['wccdc-generate-der-hidden'], $_POST['wccdc-generate-der-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccdc-generate-der-nonce'] ) ), 'wccdc-generate-der' ) ) {
+
+			/*Crea il file .der*/
+			$country_name             = isset( $_POST['countryName'] ) ? sanitize_text_field( wp_unslash( $_POST['countryName'] ) ) : '';
+			$state_or_provice_name    = isset( $_POST['stateOrProvinceName'] ) ? sanitize_text_field( wp_unslash( $_POST['stateOrProvinceName'] ) ) : '';
+			$locality_name            = isset( $_POST['localityName'] ) ? sanitize_text_field( wp_unslash( $_POST['localityName'] ) ) : '';
+			$organization_name        = isset( $_POST['organizationName'] ) ? sanitize_text_field( wp_unslash( $_POST['organizationName'] ) ) : '';
+			$organizational_unit_name = isset( $_POST['organizationalUnitName'] ) ? sanitize_text_field( wp_unslash( $_POST['organizationalUnitName'] ) ) : '';
+			$common_name              = isset( $_POST['commonName'] ) ? sanitize_text_field( wp_unslash( $_POST['commonName'] ) ) : '';
+			$email_address            = isset( $_POST['emailAddress'] ) ? sanitize_text_field( wp_unslash( $_POST['emailAddress'] ) ) : '';
+			$wccdc_password            = isset( $_POST['wccdc-password'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-password'] ) ) : '';
+
+			/*Salvo passw nel db*/
+			if ( $wccdc_password ) {
+				update_option( 'wccdc-password', base64_encode( $wccdc_password ) );
+			}
+
+			$dn = array(
+				'countryName'            => $country_name,
+				'stateOrProvinceName'    => $state_or_provice_name,
+				'localityName'           => $locality_name,
+				'organizationName'       => $organization_name,
+				'organizationalUnitName' => $organizational_unit_name,
+				'commonName'             => $common_name,
+				'emailAddress'           => $email_address,
+			);
+
+			/*Genera la private key*/
+			$privkey = openssl_pkey_new(
+				array(
+					'private_key_bits' => 2048,
+					'private_key_type' => OPENSSL_KEYTYPE_RSA,
+				)
+			);
+
+			/*Genera ed esporta la richiesta di certificato .pem*/
+			$csr = openssl_csr_new( $dn, $privkey, array( 'digest_alg' => 'sha256' ) );
+			openssl_csr_export_to_file( $csr, WCCDC_PRIVATE . 'files/certificate-request.pem' );
+
+			/*Trasforma la richiesta di certificato in .der*/
+			$csr_der = $this->pem2der( file_get_contents( WCCDC_PRIVATE . 'files/certificate-request.pem' ) );
+
+			/*Preparo il backup*/
+			$bu_folder            = WCCDC_PRIVATE . 'files/backups/';
+			$bu_new_folder_name   = count( glob( $bu_folder . '*', GLOB_ONLYDIR ) ) + 1;
+			$bu_new_folder_create = wp_mkdir_p( trailingslashit( $bu_folder . $bu_new_folder_name ) );
+
+			/*Salvo file di backup*/
+			if ( $bu_new_folder_create ) {
+
+				/*Esporta la richiesta di certificato .der*/
+				file_put_contents( WCCDC_PRIVATE . 'files/backups/' . $bu_new_folder_name . '/certificate-request.der', $csr_der );
+
+				/*Esporta la private key*/
+				openssl_pkey_export_to_file( $privkey, WCCDC_PRIVATE . 'files/backups/' . $bu_new_folder_name . '/key.der' );
+
+			}
+
+			/*Esporta la richiesta di certificato .der*/
+			file_put_contents( WCCDC_PRIVATE . 'files/certificate-request.der', $csr_der );
+
+			/*Esporta la private key*/
+			openssl_pkey_export_to_file( $privkey, WCCDC_PRIVATE . 'files/key.der' );
+
+			/*Download file .der*/
+			$cert_req_url = WCCDC_PRIVATE . 'files/certificate-request.der';
+
+			if ( $cert_req_url ) {
+				header( 'Content-Description: File Transfer' );
+				header( 'Content-Type: application/octet-stream' );
+				header( 'Content-Transfer-Encoding: binary' );
+				header( 'Content-disposition: attachment; filename="' . basename( $cert_req_url ) . '"' );
+				header( 'Expires: 0' );
+				header( 'Cache-Control: must-revalidate' );
+				header( 'Pragma: public' );
+
+				readfile( $cert_req_url );
+
+				exit;
+			}
+		}
+	}
+
+	/**
+	 * Attivazione certificato
+	 *
+	 * @return string
+	 */
+	public function wccdc_cert_activation() {
+
+		$soap_client = new WCCDC_Soap_Client( '11aa22bb', '' );
+
+		try {
+
+			$operation = $soap_client->check( 1 );
+			return 'ok';
+
+		} catch ( Exception $e ) {
+
+			$notice = isset( $e->detail->FaultVoucher->exceptionMessage ) ? $e->detail->FaultVoucher->exceptionMessage : $e->faultstring;
+			error_log( 'Error wccdc_cert_activation: ' . print_r( $e, true ) );
+
+			return $notice;
+
+		}
+	}
+
+	/**
+	 * Funzionalita Sandbox
+	 *
+	 * @return void
+	 */
+	public function sandbox_callback() {
+
+		if ( isset( $_POST['sandbox'], $_POST['nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'wccdc-sandbox' ) ) {
+
+			$this->sandbox = sanitize_text_field( wp_unslash( $_POST['sandbox'] ) );
+
+			update_option( 'wccdc-sandbox', $this->sandbox );
+			update_option( 'wccdc-cert-activation', $this->sandbox );
+
+		}
+
+		exit();
 
 	}
 
@@ -225,212 +473,6 @@ class WCCDC_Admin {
 	}
 
 	/**
-	 * AJAX callback per riesaminare i campi ISBN
-	 *
-	 * @return void
-	 */
-	public function rescan_isbn_callback() {
-		check_ajax_referer( 'wccdc_rescan_isbn', 'nonce' );
-
-		// Forza una nuova scansione
-		delete_option( 'wccdc-isbn-scan-timestamp' );
-		$this->scan_isbn_fields();
-
-		$candidates = get_option( 'wccdc-isbn-candidates', array() );
-		$meta_count = isset( $candidates['meta'] ) ? count( $candidates['meta'] ) : 0;
-		$attribute_count = isset( $candidates['attribute'] ) ? count( $candidates['attribute'] ) : 0;
-
-		wp_send_json_success( array(
-			'message' => sprintf(
-				__( 'Scansione completata. Trovati %d campi personalizzati e %d attributi.', 'ilghera-carta-della-cultura-for-woocommerce' ),
-				$meta_count,
-				$attribute_count
-			),
-			'candidates' => $candidates,
-		) );
-	}
-
-	/**
-	 * AJAX callback per rimuovere un campo manuale
-	 *
-	 * @return void
-	 */
-	public function remove_manual_field_callback() {
-		check_ajax_referer( 'wccdc_remove_manual_field', 'nonce' );
-
-		$isbn_field = get_option( 'wccdc-isbn-field' );
-		if ( $isbn_field && $isbn_field !== 'none' && $isbn_field !== 'custom' ) {
-			if ( strpos( $isbn_field, 'meta:' ) !== 0 && strpos( $isbn_field, 'attribute:' ) !== 0 ) {
-				// È un campo manuale, resettalo a "none"
-				update_option( 'wccdc-isbn-field', 'none' );
-				delete_option( 'wccdc-isbn-source-for-custom' );
-				wp_send_json_success( array(
-					'message' => __( 'Campo manuale rimosso con successo.', 'ilghera-carta-della-cultura-for-woocommerce' ),
-				) );
-			}
-		}
-
-		wp_send_json_error( array(
-			'message' => __( 'Nessun campo manuale da rimuovere.', 'ilghera-carta-della-cultura-for-woocommerce' ),
-		) );
-	}
-
-	/**
-	 * Restituisce il nome esatto del bene Carta della Cultura partendo dallo slug
-	 *
-	 * @param  array  $beni      l'elenco dei beni di Carta della Cultura.
-	 * @param  string $bene_slug lo slug del bene.
-	 *
-	 * @return string
-	 */
-	public function get_bene_lable( $beni, $bene_slug ) {
-		return 'Libri'; // Sempre "Libri"
-	}
-
-	/**
-	 * Categoria per la verifica in fase di checkout
-	 *
-	 * @param  int   $n               il numero dell'elemento aggiunto.
-	 * @param  array $data            bene e categoria come chiave e valore.
-	 * @param  array $exclude_beni    buoni già abbinati a categorie WC (al momento non utilizzato).
-	 * @param  array $exclude_categories categorie già selezionate da escludere.
-	 *
-	 * @return mixed
-	 */
-	public function setup_cat( $n, $data = null, $exclude_beni = null, $exclude_categories = null ) {
-
-		echo '<li class="setup-cat cat-' . esc_attr( $n ) . '">';
-
-			$terms      = get_terms( 'product_cat' );
-			$term_value = is_array( $data ) && isset( $data['libri'] ) ? $data['libri'] : '';
-
-			// Se $exclude_categories non è fornito, calcolalo dalle categorie già selezionate nella pagina
-			if ( $exclude_categories === null ) {
-				$exclude_categories = array();
-				// Non possiamo accedere alle altre dropdown direttamente qui, quindi questo sarà gestito via JavaScript
-				// Ma per coerenza manteniamo il parametro
-			}
-
-			echo '<select name="wccdc-categories-' . esc_attr( $n ) . '" class="wccdc-field categories">';
-				echo '<option value="">Categoria WooCommerce</option>';
-
-			foreach ( $terms as $term ) {
-				// Escludi categorie già selezionate se specificato
-				if ( is_array( $exclude_categories ) && in_array( $term->term_id, $exclude_categories ) ) {
-					continue;
-				}
-				
-				echo '<option value="' . esc_attr( $term->term_id ) . '"' . ( intval( $term_value ) === $term->term_id ? ' selected="selected"' : '' ) . '>' . esc_html( $term->name ) . '</option>';
-			}
-			echo '</select>';
-
-			// Campo nascosto per salvare automaticamente il bene "libri"
-			echo '<input type="hidden" name="wccdc-beni-' . esc_attr( $n ) . '" value="libri">';
-
-			if ( 1 === intval( $n ) ) {
-
-				echo '<div class="add-cat-container">';
-					echo '<img class="add-cat" src="' . esc_url( WCCDC_URI . 'images/add-cat.png' ) . '">';
-					echo '<img class="add-cat-hover wccdc" src="' . esc_url( WCCDC_URI . 'images/add-cat-hover.png' ) . '">';
-				echo '</div>';
-
-			} else {
-
-				echo '<div class="remove-cat-container">';
-					echo '<img class="remove-cat" src="' . esc_url( WCCDC_URI . 'images/remove-cat.png' ) . '">';
-					echo '<img class="remove-cat-hover" src="' . esc_url( WCCDC_URI . 'images/remove-cat-hover.png' ) . '">';
-				echo '</div>';
-
-			}
-
-			echo '</li>';
-	}
-
-	/**
-	 * Aggiunge una nuova categoria per la verifica in fase di checkout
-	 *
-	 * @return void
-	 */
-	public function add_cat_callback() {
-
-		if ( isset( $_POST['add-cat-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['add-cat-nonce'] ) ), 'wccdc-add-cat-nonce' ) ) {
-
-			$number             = isset( $_POST['number'] ) ? sanitize_text_field( wp_unslash( $_POST['number'] ) ) : '';
-			$exclude_beni       = isset( $_POST['exclude-beni'] ) ? sanitize_text_field( wp_unslash( $_POST['exclude-beni'] ) ) : '';
-			$exclude_categories = isset( $_POST['exclude-categories'] ) ? array_map( 'intval', (array) $_POST['exclude-categories'] ) : array();
-
-			if ( $number ) {
-
-				$this->setup_cat( $number, null, $exclude_beni, $exclude_categories );
-
-			}
-		}
-
-		exit;
-	}
-
-    /**
-	 * Pulsante call to action Premium
-	 *
-	 * @param bool $no_margin aggiunge la classe CSS con true.
-	 *
-	 * @return string
-	 */
-	public function get_go_premium( $no_margin = false ) {
-
-		$output      = '<span class="label label-warning premium' . ( $no_margin ? ' no-margin' : null ) . '">';
-			$output .= '<a href="https://www.ilghera.com/product/carta-della-cultura-for-wc-premium" target="_blank">Premium</a>';
-		$output     .= '</span>';
-
-		return $output;
-
-	}
-
-	/**
-	 * Attivazione certificato
-	 *
-	 * @return string
-	 */
-	public function wccdc_cert_activation() {
-
-		$soap_client = new WCCDC_Soap_Client( '11aa22bb', '' );
-
-		try {
-
-			$operation = $soap_client->check( 1 );
-			return 'ok';
-
-		} catch ( Exception $e ) {
-
-			$notice = isset( $e->detail->FaultVoucher->exceptionMessage ) ? $e->detail->FaultVoucher->exceptionMessage : $e->faultstring;
-			error_log( 'Error wccdc_cert_activation: ' . print_r( $e, true ) );
-
-			return $notice;
-
-		}
-	}
-
-	/**
-	 * Funzionalita Sandbox
-	 *
-	 * @return void
-	 */
-	public function sandbox_callback() {
-
-		if ( isset( $_POST['sandbox'], $_POST['nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'wccdc-sandbox' ) ) {
-
-			$this->sandbox = sanitize_text_field( wp_unslash( $_POST['sandbox'] ) );
-
-			update_option( 'wccdc-sandbox', $this->sandbox );
-			update_option( 'wccdc-cert-activation', $this->sandbox );
-
-		}
-
-		exit();
-
-	}
-
-	/**
 	 * Pagina opzioni plugin
 	 *
 	 * @return void
@@ -438,14 +480,40 @@ class WCCDC_Admin {
 	public function wccdc_settings() {
 
 		/*Recupero le opzioni salvate nel db*/
+		$premium_key               = get_option( 'wccdc-premium-key' );
 		$passphrase                = base64_decode( get_option( 'wccdc-password' ) );
 		$categories                = get_option( 'wccdc-categories' );
 		$tot_cats                  = $categories ? count( $categories ) : 0;
 		$wccdc_image                = get_option( 'wccdc-image' );
+		$wccdc_items_check          = get_option( 'wccdc-items-check' );
+		$wccdc_orders_on_hold       = get_option( 'wccdc-orders-on-hold' );
+		$wccdc_exclude_shipping     = get_option( 'wccdc-exclude-shipping' );
+		$wccdc_coupon               = get_option( 'wccdc-coupon' );
+		$wccdc_email_subject        = get_option( 'wccdc-email-subject' );
+		$wccdc_email_heading        = get_option( 'wccdc-email-heading' );
+		$wccdc_email_order_received = get_option( 'wccdc-email-order-received' );
+		$wccdc_email_order_failed   = get_option( 'wccdc-email-order-failed' );
+		$wccdc_isbn_field           = get_option( 'wccdc-isbn-field', 'none' );
 
 		echo '<div class="wrap">';
 			echo '<div class="wrap-left">';
 				echo '<h1>ilGhera Carta della Cultura for WooCommerce- ' . esc_html( __( 'Impostazioni', 'ilghera-carta-della-cultura-for-woocommerce' ) ) . '</h1>';
+
+				/*Premium key form*/
+				echo '<form method="post" action="">';
+					echo '<table class="form-table wccdc-table">';
+						echo '<th scope="row">' . esc_html__( 'Premium Key', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
+						echo '<td>';
+							echo '<input type="text" class="regular-text code" name="wccdc-premium-key" id="wccdc-premium-key" placeholder="' . esc_attr__( 'Inserisci la tua Premium Key', 'ilghera-carta-della-cultura-for-woocommerce' ) . '" value="' . esc_attr( $premium_key ) . '" />';
+							echo '<p class="description">' . wp_kses_post( __( 'Aggiungi la tua Premium Key e mantieni aggiornato <strong>ilGhera Carta della Cultura for Woocommerce - Premium</strong>.', 'ilghera-carta-della-cultura-for-woocommerce' ) ) . '</p>';
+
+							wp_nonce_field( 'wccdc-premium-key', 'wccdc-premium-key-nonce' );
+
+							echo '<input type="hidden" name="premium-key-sent" value="1" />';
+							echo '<input type="submit" class="button button-primary wccdc-button"" value="' . esc_html__( 'Salva ', 'ilghera-carta-della-cultura-for-woocommerce' ) . '" />';
+						echo '</td>';
+					echo '</table>';
+				echo '</form>';
 
 				/*Tabs*/
 				echo '<div class="icon32 icon32-woocommerce-settings" id="icon-woocommerce"></div>';
@@ -522,7 +590,7 @@ class WCCDC_Admin {
 		if ( ! self::get_the_file( '.pem' ) ) {
 
 			/*Genera richiesta certificato .der*/
-            echo '<h3>' . esc_html__( 'Richiedi un certificato', 'ilghera-carta-della-cultura-for-woocommerce' ) . wp_kses_post( $this->get_go_premium() ) . '</h3>';
+			echo '<h3>' . esc_html__( 'Richiedi un certificato', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</h3>';
 			echo '<p class="description">' . esc_html__( 'Con questo strumento puoi generare un file .der necessario per richiedere il tuo certificato su Carta della Cultura.', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</p>';
 
 			echo '<form id="generate-certificate-request" method="post" class="one-of" enctype="multipart/form-data" action="">';
@@ -530,49 +598,49 @@ class WCCDC_Admin {
 					echo '<tr>';
 						echo '<th scope="row">' . esc_html__( 'Stato', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 						echo '<td>';
-							echo '<input type="text" name="countryName" placeholder="IT" disabled>';
+							echo '<input type="text" name="countryName" placeholder="IT" required>';
 						echo '</td>';
 					echo '</tr>';
 
 					echo '<th scope="row">' . esc_html__( 'Provincia', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 						echo '<td>';
-							echo '<input type="text" name="stateOrProvinceName" placeholder="Es. Milano" disabled>';
+							echo '<input type="text" name="stateOrProvinceName" placeholder="Es. Milano" required>';
 						echo '</td>';
 					echo '</tr>';
 
 					echo '<th scope="row">' . esc_html__( 'Località', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 						echo '<td>';
-							echo '<input type="text" name="localityName" placeholder="Es. Legnano" disabled>';
+							echo '<input type="text" name="localityName" placeholder="Es. Legnano" required>';
 						echo '</td>';
 					echo '</tr>';
 
 					echo '<th scope="row">' . esc_html__( 'Nome azienda', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 						echo '<td>';
-							echo '<input type="text" name="organizationName" placeholder="Es. Taldeitali srl" disabled>';
+							echo '<input type="text" name="organizationName" placeholder="Es. Taldeitali srl" required>';
 						echo '</td>';
 					echo '</tr>';
 
 					echo '<th scope="row">' . esc_html__( 'Reparto azienda', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 						echo '<td>';
-							echo '<input type="text" name="organizationalUnitName" placeholder="Es. Vendite" disabled>';
+							echo '<input type="text" name="organizationalUnitName" placeholder="Es. Vendite" required>';
 						echo '</td>';
 					echo '</tr>';
 
 					echo '<th scope="row">' . esc_html__( 'Nome', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 						echo '<td>';
-							echo '<input type="text" name="commonName" placeholder="Es. Franco Bianchi" disabled>';
+							echo '<input type="text" name="commonName" placeholder="Es. Franco Bianchi" required>';
 						echo '</td>';
 					echo '</tr>';
 
 					echo '<th scope="row">' . esc_html__( 'Email', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 						echo '<td>';
-							echo '<input type="email" name="emailAddress" placeholder="Es. franco.bianchi@taldeitali.it" disabled>';
+							echo '<input type="email" name="emailAddress" placeholder="Es. franco.bianchi@taldeitali.it" required>';
 						echo '</td>';
 					echo '</tr>';
 
 					echo '<th scope="row">' . esc_html__( 'Password', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 						echo '<td>';
-							echo '<input type="password" name="wccdc-password" placeholder="**********" disabled>';
+							echo '<input type="password" name="wccdc-password" placeholder="**********" required>';
 						echo '</td>';
 					echo '</tr>';
 
@@ -580,7 +648,7 @@ class WCCDC_Admin {
 						echo '<td>';
 						wp_nonce_field( 'wccdc-generate-der', 'wccdc-generate-der-nonce' );
 						echo '<input type="hidden" name="wccdc-generate-der-hidden" value="1">';
-						echo '<input type="submit" name="generate-der" class="button-primary wccdc-button generate-der" value="' . esc_attr__( 'Scarica file .der', 'ilghera-carta-della-cultura-for-woocommerce' ) . '" disabled>';
+						echo '<input type="submit" name="generate-der" class="button-primary wccdc-button generate-der" value="' . esc_attr__( 'Scarica file .der', 'ilghera-carta-della-cultura-for-woocommerce' ) . '">';
 						echo '</td>';
 					echo '</tr>';
 
@@ -588,7 +656,7 @@ class WCCDC_Admin {
 			echo '</form>';
 
 			/*Genera certificato .pem*/
-            echo '<h3>' . esc_html__( 'Crea il tuo certificato', 'ilghera-carta-della-cultura-for-woocommerce' ) . wp_kses_post( $this->get_go_premium() ) . '</h3>';
+			echo '<h3>' . esc_html( __( 'Crea il tuo certificato', 'ilghera-carta-della-cultura-for-woocommerce' ) ) . '</h3>';
 			echo '<p class="description">' . esc_html__( 'Con questo ultimo passaggio, potrai iniziare a ricevere pagamenti attraverso buoni Carta della Cultura.', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</p>';
 
 			echo '<form name="wccdc-generate-certificate" class="wccdc-generate-certificate one-of" method="post" enctype="multipart/form-data" action="">';
@@ -599,13 +667,13 @@ class WCCDC_Admin {
 						echo '<th scope="row">' . esc_html__( 'Genera certificato', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 						echo '<td>';
 
-							echo '<input type="file" accept=".cer" name="wccdc-cert" class="wccdc-cert" disabled>';
+							echo '<input type="file" accept=".cer" name="wccdc-cert" class="wccdc-cert">';
 							echo '<p class="description">' . esc_html__( 'Carica il file .cer ottenuto da Carta della Cultura per procedere', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</p>';
 
 							wp_nonce_field( 'wccdc-generate-certificate', 'wccdc-gen-certificate-nonce' );
 
 							echo '<input type="hidden" name="wccdc-gen-certificate-hidden" value="1">';
-							echo '<input type="submit" class="button-primary wccdc-button" value="' . esc_html__( 'Genera certificato', 'ilghera-carta-della-cultura-for-woocommerce' ) . '" disabled>';
+							echo '<input type="submit" class="button-primary wccdc-button" value="' . esc_html__( 'Genera certificato', 'ilghera-carta-della-cultura-for-woocommerce' ) . '">';
 
 						echo '</td>';
 					echo '</tr>';
@@ -725,8 +793,8 @@ class WCCDC_Admin {
 									$attribute_candidates = isset( $candidates['attribute'] ) ? $candidates['attribute'] : array();
 									
 									echo '<select name="wccdc-isbn-field" class="wccdc-isbn-field">';
-										echo '<option value="none"' . selected( $wccdc_isbn_field, 'none', false ) . '>' .
-											esc_html__( 'Nessuno (non inviare ISBN)', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
+										echo '<option value="none"' . selected( $wccdc_isbn_field, 'none', false ) . '>' . 
+											 esc_html__( 'Nessuno (non inviare ISBN)', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
 										
 										// Mostra solo i campi della fonte selezionata
 										$isbn_source = get_option( 'wccdc-isbn-source', 'meta' );
@@ -738,8 +806,8 @@ class WCCDC_Admin {
 												$truncated_sample = strlen( $sample ) > 20 ? substr( $sample, 0, 20 ) . '...' : $sample;
 												// Mostra solo il nome del campo meta
 												$option_label = esc_html( $meta_key );
-												echo '<option value="meta:' . esc_attr( $meta_key ) . '"' . selected( $wccdc_isbn_field, 'meta:' . $meta_key, false ) . '>' .
-													$option_label . '</option>';
+												echo '<option value="meta:' . esc_attr( $meta_key ) . '"' . selected( $wccdc_isbn_field, 'meta:' . $meta_key, false ) . '>' . 
+													 $option_label . '</option>';
 											}
 											echo '</optgroup>';
 										}
@@ -750,8 +818,8 @@ class WCCDC_Admin {
 												$label = isset( $data['label'] ) ? $data['label'] : $taxonomy;
 												// Mostra solo il nome dell'attributo, senza parentesi
 												$option_label = esc_html( $label );
-												echo '<option value="attribute:' . esc_attr( $taxonomy ) . '"' . selected( $wccdc_isbn_field, 'attribute:' . $taxonomy, false ) . '>' .
-													$option_label . '</option>';
+												echo '<option value="attribute:' . esc_attr( $taxonomy ) . '"' . selected( $wccdc_isbn_field, 'attribute:' . $taxonomy, false ) . '>' . 
+													 $option_label . '</option>';
 											}
 											echo '</optgroup>';
 										}
@@ -779,14 +847,14 @@ class WCCDC_Admin {
 										// Se c'è un valore personalizzato salvato, mostralo come opzione selezionata
 										if ( $is_custom_value ) {
 											echo '<optgroup label="' . esc_attr__( 'Campo manuale', 'ilghera-carta-della-cultura-for-woocommerce' ) . '">';
-											echo '<option value="' . esc_attr( $wccdc_isbn_field ) . '" selected="selected">' .
-												esc_html( $custom_value_display ) . ' ' . esc_html__( '(manuale)', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
+											echo '<option value="' . esc_attr( $wccdc_isbn_field ) . '" selected="selected">' . 
+												 esc_html( $custom_value_display ) . ' ' . esc_html__( '(manuale)', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
 											echo '</optgroup>';
 										}
 										
 										// Opzione per inserire manualmente un campo non rilevato
-										echo '<option value="custom"' . selected( $wccdc_isbn_field, 'custom', false ) . '>' .
-											esc_html__( 'Inserisci manualmente', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
+										echo '<option value="custom"' . selected( $wccdc_isbn_field, 'custom', false ) . '>' . 
+											 esc_html__( 'Inserisci manualmente', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
 										
 									echo '</select>';
 									
@@ -800,9 +868,9 @@ class WCCDC_Admin {
 									}
 									
 									echo '<div id="wccdc-custom-isbn-field" style="margin-top:10px;' . ( $show_custom_field ? '' : 'display:none;' ) . '">';
-										echo '<input type="text" name="wccdc-custom-isbn-field-value" value="' .
-											esc_attr( $custom_field_value ) . '" placeholder="' .
-											esc_attr__( 'es. isbn, codice_isbn, _isbn oppure pa_isbn', 'ilghera-carta-della-cultura-for-woocommerce' ) . '" />';
+										echo '<input type="text" name="wccdc-custom-isbn-field-value" value="' . 
+											 esc_attr( $custom_field_value ) . '" placeholder="' . 
+											 esc_attr__( 'es. isbn, codice_isbn, _isbn oppure pa_isbn', 'ilghera-carta-della-cultura-for-woocommerce' ) . '" />';
 										echo '<p class="description">' . esc_html__( 'Inserisci il nome esatto del campo meta o dell\'attributo che contiene l\'ISBN', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</p>';
 										echo '<p class="description" style="margin-top:5px;">';
 											echo '<strong>' . esc_html__( 'Esempi:', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</strong>';
@@ -829,12 +897,16 @@ class WCCDC_Admin {
 									
 									if ( $is_manual_field ) {
 										echo '<div id="wccdc-remove-manual-field" style="margin-top:10px; margin-bottom:15px;">';
-											echo '<a href="#" id="wccdc-remove-manual-link" style="color:#dc3232; text-decoration:none;">' .
-												esc_html__( 'Rimuovi campo manuale', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</a>';
+											echo '<a href="#" id="wccdc-remove-manual-link" style="color:#dc3232; text-decoration:none;">' . 
+												 esc_html__( 'Rimuovi campo manuale', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</a>';
 											echo '<span class="spinner" style="float:none;margin-left:5px;"></span>';
 											echo '<span id="wccdc-remove-message" style="margin-left:10px;"></span>';
 										echo '</div>';
 									}
+									
+									echo '<p class="description">' . 
+										 esc_html__( 'Seleziona il campo che contiene il codice ISBN nei tuoi prodotti. Il plugin ha scansionato automaticamente i campi disponibili.', 'ilghera-carta-della-cultura-for-woocommerce' ) . 
+										 '</p>';
 									
 									// DEBUG: Log per verificare cosa è stato trovato
 									error_log('WCCDC ISBN CANDIDATES FOR DISPLAY: ' . print_r($candidates, true));
@@ -845,8 +917,8 @@ class WCCDC_Admin {
 									
 									// Pulsante per forzare una nuova scansione
 									echo '<p>';
-										echo '<a href="#" id="wccdc-rescan-isbn" class="button button-secondary">' .
-											esc_html__( 'Riesamina campi', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</a>';
+										echo '<a href="#" id="wccdc-rescan-isbn" class="button button-secondary">' . 
+											 esc_html__( 'Riesamina campi', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</a>';
 										echo '<span class="spinner" style="float:none;margin-left:5px;"></span>';
 										echo '<span id="wccdc-rescan-message" style="margin-left:10px;"></span>';
 									echo '</p>';
@@ -868,34 +940,30 @@ class WCCDC_Admin {
 							echo '<tr>';
 								echo '<th scope="row">' . esc_html__( 'Controllo prodotti', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 								echo '<td>';
-									echo '<input type="checkbox" name="wccdc-items-check" value="1" disabled>';
-									echo '<p class="description">' . wp_kses_post( __( 'Mostra il metodo di pagamento solo se il/ i prodotti a carrello sono acquistabili con buoni <i>Carta della Cultura</i>.<br>Più prodotti dovranno prevedere l\'uso di buoni dello stesso ambito di utilizzo.', 'ilghera-carta-della-cultura-for-woocommerce' ) ) . '</p>';
-									echo wp_kses_post( $this->get_go_premium( true ) );
+										echo '<input type="checkbox" name="wccdc-items-check" value="1"' . ( 1 === intval( $wccdc_items_check ) ? ' checked="checked"' : '' ) . '>';
+									echo '<p class="description">' . wp_kses_post( __( 'Mostra il metodo di pagamento solo se il/ i prodotti a carrello sono acquistabili con buoni <i>Carta della Cultura</i>.', 'ilghera-carta-della-cultura-for-woocommerce' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
 
 							echo '<tr class="wccdc-orders-on-hold">';
 								echo '<th scope="row">' . esc_html__( 'Ordini in sospeso', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 								echo '<td>';
-                                    echo '<input type="checkbox" name="wccdc-orders-on-hold" value="1" disabled>';
+										echo '<input type="checkbox" name="wccdc-orders-on-hold" value="1"' . ( 1 === intval( $wccdc_orders_on_hold ) ? ' checked="checked"' : '' ) . '>';
 									echo '<p class="description">' . wp_kses_post( __( 'I buoni Carta della Cultura verranno validati con il completamento manuale degli ordini.', 'ilghera-carta-della-cultura-for-woocommerce' ) ) . '</p>';
-                                    echo wp_kses_post( $this->get_go_premium( true ) );
 								echo '</td>';
 							echo '<tr class="wccdc-exclude-shipping">';
 								echo '<th scope="row">' . esc_html__( 'Spese di spedizione', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 								echo '<td>';
-                                    echo '<input type="checkbox" name="wccdc-exclude-shipping" value="1" disabled>';
+										echo '<input type="checkbox" name="wccdc-exclude-shipping" value="1"' . ( 1 === intval( $wccdc_exclude_shipping ) ? ' checked="checked"' : '' ) . '>';
 									echo '<p class="description">' . wp_kses_post( __( 'Escludi le spese di spedizione dal pagamento con Carta della Cultura.', 'ilghera-carta-della-cultura-for-woocommerce' ) ) . '</p>';
-                                    echo wp_kses_post( $this->get_go_premium( true ) );
 								echo '</td>';
 							echo '</tr>';
 
 							echo '<tr class="wccdc-coupon">';
 								echo '<th scope="row">' . esc_html__( 'Conversione in coupon', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 								echo '<td>';
-									echo '<input type="checkbox" name="wccdc-coupon" value="1" disabled>';
+									echo '<input type="checkbox" name="wccdc-coupon" value="1"' . ( 1 === intval( $wccdc_coupon ) ? ' checked="checked"' : '' ) . '>';
 									echo '<p class="description">' . wp_kses_post( __( 'Nel caso in cui il buono <i>Carta della Cultura</i> inserito sia inferiore al totale a carrello, viene convertito in <i>Codice promozionale</i> ed applicato all\'ordine.', 'ilghera-carta-della-cultura-for-woocommerce' ) ) . '</p>';
-                                    echo wp_kses_post( $this->get_go_premium( true ) );
 								echo '</td>';
 							echo '</tr>';
 
@@ -903,7 +971,7 @@ class WCCDC_Admin {
 								echo '<th scope="row">' . esc_html__( 'Ordine ricevuto', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 								echo '<td>';
 									$default_order_received_message = __( 'L\'ordine verrà completato manualmente nei prossimi giorni e, contestualmente, verrà validato il buono Carta della Cultura inserito. Riceverai una notifica email di conferma, grazie!', 'ilghera-carta-della-cultura-for-woocommerce' );
-									echo '<textarea cols="6" rows="6" class="regular-text" name="wccdc-email-order-received" placeholder="' . esc_html( $default_order_received_message ) . '" disabled></textarea>';
+									echo '<textarea cols="6" rows="6" class="regular-text" name="wccdc-email-order-received" placeholder="' . esc_html( $default_order_received_message ) . '" value="' . esc_html( $wccdc_email_order_received ) . '">' . esc_html( $wccdc_email_order_received ) . '</textarea>';
 									echo '<p class="description">';
 										echo wp_kses_post( __( 'Messaggio della mail inviata all\'utente al ricevimento dell\'ordine.', 'ilghera-carta-della-cultura-for-woocommerce' ) );
 									echo '</p>';
@@ -914,7 +982,7 @@ class WCCDC_Admin {
 							echo '<tr class="wccdc-email-subject wccdc-email-details">';
 								echo '<th scope="row">' . esc_html__( 'Oggetto email', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 								echo '<td>';
-                                    echo '<input type="text" class="regular-text" name="wccdc-email-subject" placeholder="' . esc_attr__( 'Ordine fallito', 'ilghera-carta-della-cultura-for-woocommerce' ) . '" disabled>';
+										echo '<input type="text" class="regular-text" name="wccdc-email-subject" placeholder="' . esc_attr__( 'Ordine fallito', 'ilghera-carta-della-cultura-for-woocommerce' ) . '" value="' . esc_attr( $wccdc_email_subject ) . '">';
 									echo '<p class="description">' . wp_kses_post( __( 'Oggetto della mail inviata all\'utente nel caso in cui la validazione del buono non sia andata a buon fine.', 'ilghera-carta-della-cultura-for-woocommerce' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
@@ -922,7 +990,7 @@ class WCCDC_Admin {
 							echo '<tr class="wccdc-email-heading wccdc-email-details">';
 								echo '<th scope="row">' . esc_html__( 'Intestazione email', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 								echo '<td>';
-                                    echo '<input type="text" class="regular-text" name="wccdc-email-heading" placeholder="' . esc_attr__( 'Ordine fallito', 'ilghera-carta-della-cultura-for-woocommerce' ) . '" disabled>';
+										echo '<input type="text" class="regular-text" name="wccdc-email-heading" placeholder="' . esc_attr__( 'Ordine fallito', 'ilghera-carta-della-cultura-for-woocommerce' ) . '" value="' . esc_attr( $wccdc_email_heading ) . '">';
 									echo '<p class="description">' . wp_kses_post( __( 'Intestazione della mail inviata all\'utente nel caso in cui la validazione del buono non sia andata a buon fine.', 'ilghera-carta-della-cultura-for-woocommerce' ) ) . '</p>';
 								echo '</td>';
 							echo '</tr>';
@@ -930,10 +998,8 @@ class WCCDC_Admin {
 							echo '<tr class="wccdc-email-order-failed wccdc-email-details">';
 								echo '<th scope="row">' . esc_html__( 'Ordine fallito', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 								echo '<td>';
-										/* translators: %s: Checkout URL */
-										$default_order_failed_message = __( 'La validazione del buono Carta della Cultura ha restituito un errore e non è stato possibile completare l\'ordine, effettua il pagamento a <a href="%s">questo indirizzo</a>.', 'ilghera-carta-della-cultura-for-woocommerce' );
-										$placeholder_text = sprintf( $default_order_failed_message, '[checkout-url]' );
-										echo '<textarea cols="6" rows="6" class="regular-text" name="wccdc-email-order-failed" placeholder="' . esc_html( $placeholder_text ) . '" disabled></textarea>';
+										$default_order_failed_message = __( 'La validazone del buono Carta della Cultura ha restituito un errore e non è stato possibile completare l\'ordine, effettua il pagamento a <a href="[checkout-url]">questo indirizzo</a>.' );
+										echo '<textarea cols="6" rows="6" class="regular-text" name="wccdc-email-order-failed" placeholder="' . esc_html( $default_order_failed_message ) . '" value="' . esc_html( $wccdc_email_order_failed ) . '">' . esc_html( $wccdc_email_order_failed ) . '</textarea>';
 										echo '<p class="description">';
 											echo '<span class="shortcodes">';
 												echo '<code>[checkout-url]</code>';
@@ -955,10 +1021,23 @@ class WCCDC_Admin {
 			echo '</div>';
 
 			echo '<div class="wrap-right">';
+            echo '<iframe width="300" height="1300" scrolling="no" src="http://www.ilghera.com/images/wccdc-premium-iframe.html"></iframe>';
 			echo '</div>';
 			echo '<div class="clear"></div>';
 
 		echo '</div>';
+		
+		// Aggiungi nonce per le funzionalità AJAX ISBN
+		?>
+		<script type="text/javascript">
+		if (typeof wccdcData === 'undefined') {
+			var wccdcData = {};
+		}
+		wccdcData.rescanIsbnNonce = '<?php echo wp_create_nonce( 'wccdc-rescan-isbn' ); ?>';
+		wccdcData.removeManualFieldNonce = '<?php echo wp_create_nonce( 'wccdc-remove-manual-field' ); ?>';
+		wccdcData.settingsNonce = '<?php echo wp_create_nonce( 'wccdc-save-settings' ); ?>';
+		</script>
+		<?php
 
 	}
 
@@ -977,6 +1056,45 @@ class WCCDC_Admin {
 
 	}
 
+	/**
+	 * AJAX callback per riesaminare i campi ISBN
+	 *
+	 * @return void
+	 */
+	public function rescan_isbn_callback() {
+		if ( ! check_ajax_referer( 'wccdc-rescan-isbn', 'nonce', false ) ) {
+			wp_die( 'Nonce verification failed', 403 );
+		}
+		
+		// Forza una nuova scansione eliminando il timestamp
+		delete_option( 'wccdc-isbn-scan-timestamp' );
+		$this->scan_isbn_fields();
+		
+		wp_send_json_success( array(
+			'message' => __( 'Scansione completata. La pagina verrà ricaricata.', 'ilghera-carta-della-cultura-for-woocommerce' )
+		) );
+	}
+	
+	/**
+	 * AJAX callback per rimuovere un campo manuale
+	 *
+	 * @return void
+	 */
+	public function remove_manual_field_callback() {
+		if ( ! check_ajax_referer( 'wccdc-remove-manual-field', 'nonce', false ) ) {
+			wp_die( 'Nonce verification failed', 403 );
+		}
+		
+		// Reimposta il campo ISBN a "none"
+		update_option( 'wccdc-isbn-field', 'none' );
+		// Cancella la fonte salvata per il campo manuale
+		delete_option( 'wccdc-isbn-source-for-custom' );
+		
+		wp_send_json_success( array(
+			'message' => __( 'Campo manuale rimosso. La pagina verrà ricaricata.', 'ilghera-carta-della-cultura-for-woocommerce' )
+		) );
+	}
+	
 	/**
 	 * Salvataggio delle impostazioni dell'utente
 	 *
@@ -1095,6 +1213,15 @@ class WCCDC_Admin {
 			}
 		}
 
+		// Gestione salvataggio immediato quando si cambia fonte ISBN
+		if ( isset( $_POST['wccdc-isbn-source-temp'] ) ) {
+			$wccdc_isbn_source_temp = sanitize_text_field( wp_unslash( $_POST['wccdc-isbn-source-temp'] ) );
+			update_option( 'wccdc-isbn-source', $wccdc_isbn_source_temp );
+			// Reindirizza per evitare doppio invio
+			wp_safe_redirect( admin_url( 'admin.php?page=wccdc-settings' ) );
+			exit;
+		}
+		
 		if ( isset( $_POST['wccdc-settings-hidden'], $_POST['wccdc-settings-nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wccdc-settings-nonce'] ) ), 'wccdc-save-settings' ) ) {
 
 			/*Impostazioni categorie per il controllo in fase di checkout*/
@@ -1137,34 +1264,39 @@ class WCCDC_Admin {
 				update_option( 'wccdc-categories', $wccdc_categories );
 			}
 
-			/*Conversione in coupon*/
-			$wccdc_coupon = isset( $_POST['wccdc-coupon'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-coupon'] ) ) : '';
-			update_option( 'wccdc-coupon', $wccdc_coupon );
-
 			/*Fonte ISBN*/
 			$wccdc_isbn_source = isset( $_POST['wccdc-isbn-source'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-isbn-source'] ) ) : 'meta';
 			update_option( 'wccdc-isbn-source', $wccdc_isbn_source );
-
+			
 			/*Campo ISBN*/
 			$wccdc_isbn_field = isset( $_POST['wccdc-isbn-field'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-isbn-field'] ) ) : 'none';
 			update_option( 'wccdc-isbn-field', $wccdc_isbn_field );
-
-			/*Campo ISBN personalizzato*/
-			$wccdc_custom_isbn_field_value = isset( $_POST['wccdc-custom-isbn-field-value'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-custom-isbn-field-value'] ) ) : '';
-			update_option( 'wccdc-custom-isbn-field-value', $wccdc_custom_isbn_field_value );
-
-			// Se il campo selezionato è "custom", aggiorna il campo effettivo con il valore personalizzato
-			if ( $wccdc_isbn_field === 'custom' && ! empty( $wccdc_custom_isbn_field_value ) ) {
-				// Salva il valore personalizzato come campo effettivo
-				update_option( 'wccdc-isbn-field', $wccdc_custom_isbn_field_value );
-				// Salva la fonte per questo campo personalizzato
+			
+			// Se è selezionato "custom", salva il valore manuale
+			if ( $wccdc_isbn_field === 'custom' ) {
+				$custom_field = isset( $_POST['wccdc-custom-isbn-field-value'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-custom-isbn-field-value'] ) ) : '';
+				update_option( 'wccdc-custom-isbn-field-value', $custom_field );
+				// Usa il valore personalizzato come campo ISBN effettivo
+				update_option( 'wccdc-isbn-field', $custom_field );
+				// Salva la fonte corrente per questo campo manuale
 				update_option( 'wccdc-isbn-source-for-custom', $wccdc_isbn_source );
-			} elseif ( $wccdc_isbn_field !== 'custom' && $wccdc_isbn_field !== 'none' ) {
-				// Se è un campo manuale (non inizia con meta: o attribute:), salva la fonte
+			} elseif ( $wccdc_isbn_field !== 'none' && $wccdc_isbn_field !== 'custom' ) {
+				// Se è un campo manuale (non inizia con meta: o attribute:)
 				if ( strpos( $wccdc_isbn_field, 'meta:' ) !== 0 && strpos( $wccdc_isbn_field, 'attribute:' ) !== 0 ) {
+					// Salva la fonte corrente per questo campo manuale
 					update_option( 'wccdc-isbn-source-for-custom', $wccdc_isbn_source );
+				} else {
+					// Se è un campo automatico (meta: o attribute:), cancella la fonte salvata
+					delete_option( 'wccdc-isbn-source-for-custom' );
 				}
+			} else {
+				// Se è "none", cancella la fonte salvata
+				delete_option( 'wccdc-isbn-source-for-custom' );
 			}
+			
+			/*Conversione in coupon*/
+			$wccdc_coupon = isset( $_POST['wccdc-coupon'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-coupon'] ) ) : '';
+			update_option( 'wccdc-coupon', $wccdc_coupon );
 
 			/*Immagine in pagina di checkout*/
 			$wccdc_image = isset( $_POST['wccdc-image'] ) ? sanitize_text_field( wp_unslash( $_POST['wccdc-image'] ) ) : '';
