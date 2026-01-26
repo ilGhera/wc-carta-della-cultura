@@ -184,5 +184,174 @@ class WCCDC_Soap_Client {
 		return $confirm;
 	}
 
+	/**
+	 * Inserisce gli ISBN per la validazione del buono
+	 *
+	 * @param int|null $order_id ID dell'ordine per ottenere ISBN.
+	 * @return mixed
+	 */
+	public function insert_isbn( $order_id = null ) {
+		error_log('WCCDC DEBUG insert_isbn START - Order ID: ' . $order_id . ', Voucher: ' . $this->codice_voucher . ', Import: ' . $this->import);
+		
+		// Ottieni lista di tutti gli ISBN con importi proporzionali
+		$isbn_list = $order_id ? $this->get_isbn_list_from_order( $order_id, $this->import ) : null;
+		error_log('WCCDC DEBUG insert_isbn - ISBN list retrieved: ' . ($isbn_list ? print_r($isbn_list, true) : 'NULL'));
+		
+		// Secondo il WSDL, InsertISBN richiede codiceVoucher, tipoOperazione e listaISBN
+		// listaISBN è un array di DettaglioIsbnBean (importo e isbn)
+		$insert_data = array(
+			'codiceVoucher'  => $this->codice_voucher,
+			'tipoOperazione' => '1',
+		);
+		
+		if ( $isbn_list && is_array( $isbn_list ) ) {
+			// Crea listaISBN con tutti gli elementi
+			$dettaglio_isbn = array();
+			foreach ( $isbn_list as $item ) {
+				$dettaglio_isbn[] = array(
+					'importo' => $item['importo'],
+					'isbn'    => $item['isbn'],
+				);
+			}
+			
+			$insert_data['listaISBN'] = array(
+				'dettaglioISBN' => $dettaglio_isbn
+			);
+			error_log('WCCDC DEBUG insert_isbn - Adding listaISBN with ' . count($dettaglio_isbn) . ' elementi');
+		} else {
+			error_log('WCCDC DEBUG insert_isbn - No ISBN list, sending without listaISBN');
+		}
+		
+		try {
+			$response = $this->soap_client()->InsertISBN( $insert_data );
+			error_log('WCCDC DEBUG insert_isbn - Response: ' . print_r($response, true));
+			return $response;
+		} catch ( Exception $e ) {
+			error_log('WCCDC DEBUG insert_isbn - Exception: ' . $e->getMessage());
+			throw $e;
+		}
+	}
+
+	/**
+	 * Ottiene tutti i codici ISBN dai prodotti dell'ordine con i relativi importi proporzionali
+	 *
+	 * @param int $order_id ID dell'ordine.
+	 * @param float $importo_totale Importo totale da suddividere.
+	 * @return array|null Array di array con 'isbn' e 'importo', o null se nessun ISBN trovato
+	 */
+	private function get_isbn_list_from_order( $order_id, $importo_totale ) {
+		error_log('WCCDC DEBUG get_isbn_list_from_order START - Order ID: ' . $order_id . ', Importo totale: ' . $importo_totale);
+		
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			error_log('WCCDC DEBUG get_isbn_list_from_order - Order not found');
+			return null;
+		}
+
+		// Ottieni il campo ISBN configurato
+		$isbn_field = get_option( 'wccdc-isbn-field' );
+		error_log('WCCDC DEBUG get_isbn_list_from_order - ISBN field setting: ' . $isbn_field);
+		
+		if ( empty( $isbn_field ) || $isbn_field === 'none' ) {
+			error_log('WCCDC DEBUG get_isbn_list_from_order - ISBN field is none or empty');
+			return null;
+		}
+
+		// Se è un campo personalizzato (custom)
+		if ( $isbn_field === 'custom' ) {
+			$isbn_field = get_option( 'wccdc-custom-isbn-field-value' );
+			error_log('WCCDC DEBUG get_isbn_list_from_order - Custom field value: ' . $isbn_field);
+			if ( empty( $isbn_field ) ) {
+				error_log('WCCDC DEBUG get_isbn_list_from_order - Custom field is empty');
+				return null;
+			}
+		}
+
+		$isbn_list = array();
+		$items_with_isbn = 0;
+		$total_items_price = 0;
+		
+		// Prima passata: conta prodotti con ISBN e calcola prezzo totale dei prodotti con ISBN
+		foreach ( $order->get_items() as $item ) {
+			$product = $item->get_product();
+			if ( ! $product ) {
+				continue;
+			}
+			
+			$isbn = $this->get_isbn_from_product( $product, $isbn_field );
+			if ( ! empty( $isbn ) ) {
+				$items_with_isbn++;
+				$total_items_price += $item->get_total();
+			}
+		}
+		
+		error_log('WCCDC DEBUG get_isbn_list_from_order - Prodotti con ISBN: ' . $items_with_isbn . ', Totale prezzi: ' . $total_items_price);
+		
+		if ( $items_with_isbn === 0 ) {
+			error_log('WCCDC DEBUG get_isbn_list_from_order - Nessun ISBN trovato in nessun prodotto');
+			return null;
+		}
+		
+		// Seconda passata: crea lista ISBN con importi proporzionali
+		foreach ( $order->get_items() as $item ) {
+			$product = $item->get_product();
+			if ( ! $product ) {
+				continue;
+			}
+			
+			$isbn = $this->get_isbn_from_product( $product, $isbn_field );
+			if ( ! empty( $isbn ) ) {
+				// Calcola importo proporzionale per questo prodotto
+				$item_price = $item->get_total();
+				$proportion = $total_items_price > 0 ? $item_price / $total_items_price : 0;
+				$item_import = round( $importo_totale * $proportion, 2 );
+				
+				// Pulisci ISBN (solo numeri)
+				$clean_isbn = preg_replace( '/[^0-9]/', '', $isbn );
+				if ( ! empty( $clean_isbn ) ) {
+					$isbn_list[] = array(
+						'isbn'    => $clean_isbn,
+						'importo' => $item_import,
+					);
+				}
+			}
+		}
+
+		error_log('WCCDC DEBUG get_isbn_list_from_order - Final ISBN list: ' . print_r($isbn_list, true));
+		return $isbn_list;
+	}
+
+	/**
+	 * Recupera l'ISBN da un prodotto in base al campo configurato
+	 *
+	 * @param WC_Product $product    Il prodotto.
+	 * @param string     $isbn_field Il campo ISBN configurato.
+	 * @return string|null ISBN o null se non trovato
+	 */
+	private function get_isbn_from_product( $product, $isbn_field ) {
+		$isbn = null;
+		
+		// Determina se è un meta field o un attributo
+		if ( strpos( $isbn_field, 'meta:' ) === 0 ) {
+			// Campo meta
+			$meta_key = substr( $isbn_field, 5 );
+			$isbn = $product->get_meta( $meta_key );
+		} elseif ( strpos( $isbn_field, 'attribute:' ) === 0 ) {
+			// Attributo di prodotto (globale)
+			$attr_slug = substr( $isbn_field, 10 );
+			$isbn = $product->get_attribute( $attr_slug );
+		} else {
+			// Se non ha prefisso, assume sia un meta
+			$isbn = $product->get_meta( $isbn_field );
+		}
+
+		// Se l'ISBN è un array (può succedere con alcuni plugin), prendi il primo valore
+		if ( is_array( $isbn ) && ! empty( $isbn ) ) {
+			$isbn = reset( $isbn );
+		}
+
+		return $isbn ? (string) $isbn : null;
+	}
+
 }
 

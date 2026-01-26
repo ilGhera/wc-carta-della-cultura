@@ -254,6 +254,17 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 						/*Aggiungo il buono all'ordine*/
 						$order->update_meta_data( 'wc-codice-carta-della-cultura', $wccdc_code );
 
+						/* Se ci sono prodotti con ISBN, invia gli ISBN */
+						$isbn_field = get_option( 'wccdc-isbn-field', '' );
+						if ( $isbn_field ) {
+							try {
+								$soap_client->insert_isbn( $order_id );
+							} catch ( Exception $e ) {
+								// Log dell'errore ma non bloccare l'ordine
+								error_log( 'WCCDC ISBN insertion error: ' . $e->getMessage() );
+							}
+						}
+
 						/* Ordine completato */
 						$order->payment_complete();
 
