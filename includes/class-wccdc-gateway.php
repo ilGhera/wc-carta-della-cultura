@@ -178,6 +178,12 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 					$all_have_valid_isbn = false;
 					break;
 				}
+				// Valida checksum ISBN-13
+				if ( ! self::validate_isbn_13( $clean_isbn ) ) {
+					// ISBN checksum non valido
+					$all_have_valid_isbn = false;
+					break;
+				}
 			}
 			
 			// Se almeno un prodotto non ha ISBN valido, nascondi gateway
@@ -258,6 +264,26 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 		}
 
 		return $output;
+	}
+
+	/**
+	 * Valida checksum ISBN-13
+	 *
+	 * @param string $isbn ISBN pulito (solo cifre).
+	 *
+	 * @return bool
+	 */
+	private static function validate_isbn_13( $isbn ) {
+		// Algoritmo di validazione ISBN-13
+		$sum = 0;
+		for ( $i = 0; $i < 12; $i++ ) {
+			$digit = (int) $isbn[ $i ];
+			// Moltiplicatore: 1 per posizioni dispari (0-based), 3 per pari
+			$multiplier = ( $i % 2 === 0 ) ? 1 : 3;
+			$sum += $digit * $multiplier;
+		}
+		$checksum = ( 10 - ( $sum % 10 ) ) % 10;
+		return $checksum === (int) $isbn[12];
 	}
 
 	/**
