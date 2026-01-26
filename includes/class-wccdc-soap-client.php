@@ -266,18 +266,28 @@ class WCCDC_Soap_Client {
 		
 		error_log('WCCDC DEBUG get_isbn_from_product - ISBN field: ' . $isbn_field . ', Product ID: ' . $product->get_id() . ', Product type: ' . $product->get_type());
 		
-		// 1. PRIMA PRIORITÀ: campo nativo di WooCommerce (Global Unique Identifier)
-		// Funziona per prodotti semplici e varianti
-		if ( method_exists( $product, 'get_global_unique_id' ) ) {
-			$global_id = $product->get_global_unique_id();
-			if ( ! empty( $global_id ) ) {
-				$isbn = $global_id;
-				error_log('WCCDC DEBUG get_isbn_from_product - Global Unique ID found: ' . $isbn);
-				return $isbn;
+		// Determina la fonte principale configurata
+		$primary_source = get_option( 'wccdc-isbn-primary-source', 'wc_native' );
+		
+		// 1. Se fonte principale è "wc_native", cerca SOLO il campo nativo di WooCommerce
+		if ( $primary_source === 'wc_native' ) {
+			if ( method_exists( $product, 'get_global_unique_id' ) ) {
+				$global_id = $product->get_global_unique_id();
+				if ( ! empty( $global_id ) ) {
+					$isbn = $global_id;
+					error_log('WCCDC DEBUG get_isbn_from_product - Global Unique ID found (primary source): ' . $isbn);
+					return $isbn;
+				} else {
+					error_log('WCCDC DEBUG get_isbn_from_product - Global Unique ID not found, returning NULL');
+					return null;
+				}
 			}
+			// Se il metodo non esiste, restituisci null
+			error_log('WCCDC DEBUG get_isbn_from_product - get_global_unique_id method not available');
+			return null;
 		}
 		
-		// 2. SECONDA PRIORITÀ: campo configurato nel plugin (meta, attributo, manuale)
+		// 2. Se fonte principale è "custom", cerca SOLO nei campi configurati (meta, attributo, manuale)
 		// Determina se è un meta field o un attributo
 		if ( strpos( $isbn_field, 'meta:' ) === 0 ) {
 			// Campo meta
