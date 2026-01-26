@@ -428,10 +428,14 @@ class WCCDC_Soap_Client {
 		$sum = 0;
 		for ( $i = 0; $i < 12; $i++ ) {
 			$digit = (int) $isbn[$i];
-			$sum += $digit * ( $i % 2 === 0 ? 1 : 3 );
+			// Moltiplicatore: 1 per posizioni dispari (0-based), 3 per pari
+			$multiplier = ( $i % 2 === 0 ) ? 1 : 3;
+			$sum += $digit * $multiplier;
 		}
 		$checksum = (10 - ($sum % 10)) % 10;
-		return $checksum === (int) $isbn[12];
+		$result = $checksum === (int) $isbn[12];
+		error_log('WCCDC DEBUG validate_isbn_13 - ISBN: ' . $isbn . ', Sum: ' . $sum . ', Checksum calc: ' . $checksum . ', Last digit: ' . $isbn[12] . ', Result: ' . ($result ? 'true' : 'false'));
+		return $result;
 	}
 
 	/**
@@ -447,15 +451,23 @@ class WCCDC_Soap_Client {
 		$isbn_list = $order_id ? $this->get_isbn_list_from_order( $order_id, $this->import ) : null;
 		error_log('WCCDC DEBUG insert_isbn - ISBN list retrieved: ' . ($isbn_list ? print_r($isbn_list, true) : 'NULL'));
 		
-		// Se non ci sono ISBN, non chiamare il servizio
+		// Se non ci sono ISBN, controlla se il campo ISBN è configurato
+		$isbn_field = get_option( 'wccdc-isbn-field' );
 		if ( empty( $isbn_list ) ) {
-			error_log('WCCDC DEBUG insert_isbn - Nessun ISBN trovato, salto chiamata SOAP');
-			// Restituisci un oggetto fittizio con esito OK per non bloccare l'ordine
-			return (object) array(
-				'checkResp' => (object) array(
-					'esito' => 'OK'
-				)
-			);
+			error_log('WCCDC DEBUG insert_isbn - Nessun ISBN trovato, campo configurato: ' . $isbn_field);
+			// Se il campo ISBN è configurato (non "none"), dobbiamo fallire
+			if ( ! empty( $isbn_field ) && $isbn_field !== 'none' ) {
+				error_log('WCCDC DEBUG insert_isbn - Campo ISBN configurato ma nessun ISBN trovato: fallimento');
+				throw new Exception( __( 'ISBN non trovato nei prodotti nonostante il campo sia configurato. Verifica che tutti i prodotti abbiano ISBN valido.', 'ilghera-carta-della-cultura-for-woocommerce' ) );
+			} else {
+				// Campo ISBN non configurato: restituisci OK fittizio
+				error_log('WCCDC DEBUG insert_isbn - Campo ISBN non configurato, salto chiamata SOAP');
+				return (object) array(
+					'checkResp' => (object) array(
+						'esito' => 'OK'
+					)
+				);
+			}
 		}
 		
 		// Secondo il WSDL, InsertISBN richiede ValidazioneRequest con:
