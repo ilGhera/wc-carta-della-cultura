@@ -1027,105 +1027,15 @@ class WCCDC_Admin {
 
 		echo '</div>';
 		
-		// Aggiungi script JavaScript per gestire il campo ISBN
+		// Aggiungi nonce per le funzionalità AJAX ISBN
 		?>
 		<script type="text/javascript">
-		jQuery(document).ready(function($) {
-			// Mostra/nascondi campo manuale quando cambia la selezione
-			$('select.wccdc-isbn-field').on('change', function() {
-				if ($(this).val() === 'custom') {
-					$('#wccdc-custom-isbn-field').show();
-				} else {
-					$('#wccdc-custom-isbn-field').hide();
-				}
-			});
-			
-			// Aggiorna il dropdown quando cambia la fonte ISBN
-			$('input[name="wccdc-isbn-source"]').on('change', function() {
-				var source = $(this).val();
-				var $dropdown = $('select.wccdc-isbn-field');
-				var currentValue = $dropdown.val();
-				
-				// Ricarica la pagina per aggiornare il dropdown con i campi corretti
-				// Invia il form per salvare la selezione
-				$('form.wccdc-options').append('<input type="hidden" name="wccdc-isbn-source-temp" value="' + source + '">');
-				$('form.wccdc-options').submit();
-			});
-			
-			// Riesamina campi ISBN
-			$('#wccdc-rescan-isbn').on('click', function(e) {
-				e.preventDefault();
-				
-				var $button = $(this);
-				var $spinner = $button.next('.spinner');
-				var $message = $('#wccdc-rescan-message');
-				
-				$spinner.addClass('is-active');
-				$message.text('');
-				
-				$.ajax({
-					url: ajaxurl,
-					type: 'POST',
-					data: {
-						action: 'wccdc_rescan_isbn',
-						nonce: '<?php echo wp_create_nonce( 'wccdc-rescan-isbn' ); ?>'
-					},
-					success: function(response) {
-						$spinner.removeClass('is-active');
-						if (response.success) {
-							$message.html('<span style="color:#46b450;">' + response.data.message + '</span>');
-							// Ricarica la pagina dopo 1.5 secondi
-							setTimeout(function() {
-								location.reload();
-							}, 1500);
-						} else {
-							$message.html('<span style="color:#dc3232;">' + response.data.message + '</span>');
-						}
-					},
-					error: function() {
-						$spinner.removeClass('is-active');
-						$message.html('<span style="color:#dc3232;">Errore durante la scansione</span>');
-					}
-				});
-			});
-			
-			// Rimuovi campo manuale (link)
-			$('#wccdc-remove-manual-link').on('click', function(e) {
-				e.preventDefault();
-				
-				var $link = $(this);
-				var $spinner = $link.next('.spinner');
-				var $message = $('#wccdc-remove-message');
-				
-				$spinner.addClass('is-active');
-				$message.text('');
-				
-				$.ajax({
-					url: ajaxurl,
-					type: 'POST',
-					data: {
-						action: 'wccdc_remove_manual_field',
-						nonce: '<?php echo wp_create_nonce( 'wccdc-remove-manual-field' ); ?>'
-					},
-					success: function(response) {
-						$spinner.removeClass('is-active');
-						if (response.success) {
-							$message.html('<span style="color:#46b450;">' + response.data.message + '</span>');
-							// Ricarica la pagina dopo 1.5 secondi
-							setTimeout(function() {
-								location.reload();
-							}, 1500);
-						} else {
-							$message.html('<span style="color:#dc3232;">' + response.data.message + '</span>');
-						}
-					},
-					error: function() {
-						$spinner.removeClass('is-active');
-						$message.html('<span style="color:#dc3232;">Errore durante la rimozione</span>');
-					}
-				});
-			});
-		});
+		if (typeof wccdcData === 'undefined') {
+			var wccdcData = {};
+		}
+		wccdcData.rescanIsbnNonce = '<?php echo wp_create_nonce( 'wccdc-rescan-isbn' ); ?>';
+		wccdcData.removeManualFieldNonce = '<?php echo wp_create_nonce( 'wccdc-remove-manual-field' ); ?>';
+		wccdcData.settingsNonce = '<?php echo wp_create_nonce( 'wccdc-save-settings' ); ?>';
 		</script>
 		<?php
 
