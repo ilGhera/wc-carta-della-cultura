@@ -229,11 +229,18 @@ class WCCDC_Soap_Client {
 				if ( ! empty( $clean_isbn ) ) {
 					// Valida lunghezza ISBN (deve essere 13 cifre esatte)
 					if ( strlen( $clean_isbn ) === 13 ) {
-						$isbn_list[] = array(
-							'isbn'    => $clean_isbn,
-							'importo' => $item_import,
-						);
-						error_log('WCCDC DEBUG get_isbn_list_from_order - Aggiunto ISBN valido (13 cifre): ' . $clean_isbn . ', Importo: ' . $item_import);
+						// Valida checksum ISBN-13
+						if ( $this->validate_isbn_13( $clean_isbn ) ) {
+							$isbn_list[] = array(
+								'isbn'    => $clean_isbn,
+								'importo' => $item_import,
+							);
+							error_log('WCCDC DEBUG get_isbn_list_from_order - Aggiunto ISBN valido (13 cifre, checksum OK): ' . $clean_isbn . ', Importo: ' . $item_import);
+						} else {
+							error_log('WCCDC DEBUG get_isbn_list_from_order - ISBN checksum non valido: ' . $clean_isbn);
+							// Lancia eccezione per bloccare l'ordine prima di spendere il buono
+							throw new Exception( sprintf( __( 'ISBN non valido: %s (checksum errato)', 'ilghera-carta-della-cultura-for-woocommerce' ), $clean_isbn ) );
+						}
 					} else {
 						error_log('WCCDC DEBUG get_isbn_list_from_order - ISBN non valido (lunghezza ' . strlen($clean_isbn) . ' cifre): ' . $clean_isbn);
 						// Lancia eccezione per bloccare l'ordine prima di spendere il buono
@@ -408,6 +415,23 @@ class WCCDC_Soap_Client {
 			error_log('WCCDC DEBUG confirm - SOAP Exception: ' . $e->getMessage());
 			throw $e;
 		}
+	}
+
+	/**
+	 * Valida checksum ISBN-13
+	 *
+	 * @param string $isbn ISBN pulito (solo cifre).
+	 * @return bool
+	 */
+	private function validate_isbn_13( $isbn ) {
+		// Algoritmo di validazione ISBN-13
+		$sum = 0;
+		for ( $i = 0; $i < 12; $i++ ) {
+			$digit = (int) $isbn[$i];
+			$sum += $digit * ( $i % 2 === 0 ? 1 : 3 );
+		}
+		$checksum = (10 - ($sum % 10)) % 10;
+		return $checksum === (int) $isbn[12];
 	}
 
 	/**
