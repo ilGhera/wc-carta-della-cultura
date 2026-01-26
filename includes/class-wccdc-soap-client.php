@@ -247,7 +247,7 @@ class WCCDC_Soap_Client {
 	 * @param string $isbn_field Il campo ISBN configurato.
 	 * @return string|null ISBN o null se non trovato
 	 */
-	private function get_isbn_from_product( $product, $isbn_field ) {
+	public function get_isbn_from_product( $product, $isbn_field ) {
 		$isbn = null;
 		
 		error_log('WCCDC DEBUG get_isbn_from_product - ISBN field: ' . $isbn_field . ', Product ID: ' . $product->get_id());

@@ -83,6 +83,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 
 	/**
 	 * Disabilita il metodo di pagamento se i prodotti a carrello non sono nella categoria "libri"
+	 * O se i prodotti hanno ISBN non validi (quando configurato)
 	 *
 	 * @param array $available_gateways I metodi di pagamento disponibili.
 	 *
@@ -133,6 +134,45 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 				// Prodotto non consentito: disabilita il gateway
 				unset( $available_gateways['carta-della-cultura'] );
 				return $available_gateways;
+			}
+		}
+
+		// Validazione ISBN (se configurato)
+		$isbn_field = get_option( 'wccdc-isbn-field' );
+		if ( ! empty( $isbn_field ) && $isbn_field !== 'none' ) {
+			// Se è un campo personalizzato (custom)
+			if ( $isbn_field === 'custom' ) {
+				$isbn_field = get_option( 'wccdc-custom-isbn-field-value' );
+				if ( empty( $isbn_field ) ) {
+					// Campo personalizzato vuoto: nascondi gateway per sicurezza
+					unset( $available_gateways['carta-della-cultura'] );
+					return $available_gateways;
+				}
+			}
+			
+			// Verifica ISBN per ogni prodotto nel carrello
+			foreach ( WC()->cart->get_cart_contents() as $cart_item_key => $values ) {
+				$product = $values['data'];
+				if ( ! is_a( $product, 'WC_Product' ) ) {
+					continue;
+				}
+				
+				// Ottieni ISBN usando la funzione pubblica
+				$soap_client = new WCCDC_Soap_Client( '', 0 ); // Voucher e importo non necessari per questa chiamata
+				$isbn = $soap_client->get_isbn_from_product( $product, $isbn_field );
+				
+				if ( ! empty( $isbn ) ) {
+					// Pulisci ISBN (rimuovi spazi, trattini)
+					$clean_isbn = preg_replace( '/[^0-9]/', '', $isbn );
+					// Valida lunghezza (13 cifre)
+					if ( strlen( $clean_isbn ) !== 13 ) {
+						// ISBN non valido: nascondi gateway
+						unset( $available_gateways['carta-della-cultura'] );
+						return $available_gateways;
+					}
+				}
+				// Se ISBN non trovato, non blocchiamo: potrebbe essere un prodotto senza ISBN (es. prodotto fisico senza campo)
+				// Il plugin invierà InsertISBN senza listaISBN (OK fittizio)
 			}
 		}
 
