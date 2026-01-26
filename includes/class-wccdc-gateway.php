@@ -495,7 +495,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 							/*Validazione buono*/
 							$operation = $soap_client->confirm( $order_id );
 
-							// Se la confirm ha successo, chiama InsertISBN
+							// Se la confirm ha successo, chiama InsertISBN (gestisce internamente se ci sono ISBN)
 							if ( is_object( $operation ) && 'OK' === $operation->checkResp->esito ) {
 								$isbn_operation = $soap_client->insert_isbn( $order_id );
 								
