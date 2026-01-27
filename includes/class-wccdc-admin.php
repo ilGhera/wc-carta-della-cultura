@@ -963,14 +963,13 @@ class WCCDC_Admin {
 									
 									// Pulsante per forzare una nuova scansione (disabilitato in free)
 									echo '<p>';
-										echo '<a href="#" id="wccdc-rescan-isbn" class="button button-secondary" style="opacity:0.5; cursor:not-allowed;" onclick="return false;">' . 
+										echo '<a href="#" id="wccdc-rescan-isbn" class="button button-secondary wccdc-disabled" style="opacity:0.5; cursor:not-allowed;" onclick="return false;">' . 
 											 esc_html__( 'Riesamina campi', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</a>';
 										echo '<span class="spinner" style="float:none;margin-left:5px;"></span>';
 										echo '<span id="wccdc-rescan-message" style="margin-left:10px;"></span>';
 									echo '</p>';
 									
 									// Badge Premium
-									echo '<br>';
 									echo wp_kses_post( $this->get_go_premium( true ) );
 									
 								echo '</td>';

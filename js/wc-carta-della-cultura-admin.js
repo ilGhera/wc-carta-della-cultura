@@ -313,9 +313,14 @@ var wccdc_isbn_field = function() {
                 $form.submit();
             });
             
-            // Riesamina campi ISBN
+            // Riesamina campi ISBN (disabilitato in versione free)
             $('#wccdc-rescan-isbn').on('click', function(e) {
                 e.preventDefault();
+                
+                // Se il pulsante è disabilitato (classe wccdc-disabled), non fare nulla
+                if ($(this).hasClass('wccdc-disabled')) {
+                    return;
+                }
                 
                 var $button = $(this);
                 var $spinner = $button.next('.spinner');
