@@ -825,7 +825,7 @@ class WCCDC_Admin {
 										echo '</label>';
 										
 										echo '<label style="display:block;">';
-											echo '<input type="radio" name="wccdc-isbn-primary-source" value="custom"' . checked( $isbn_primary_source, 'custom', false ) . ' disabled /> ';
+											echo '<input type="radio" name="wccdc-isbn-primary-source" value="custom"' . checked( $isbn_primary_source, 'custom', false ) . ' /> ';
 											echo '<strong>' . esc_html__( 'Usa un campo personalizzato o attributo', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</strong>';
 											echo '<br><span class="description" style="margin-left:22px;">' . esc_html__( 'Scegli un campo meta o un attributo di prodotto che contiene l\'ISBN.', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</span>';
 										echo '</label>';
