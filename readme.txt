@@ -1,8 +1,8 @@
 === ilGhera Carta della Cultura for WooCommerce - Premium ===
 Contributors: ghera74
 Tags: Woocommerce, e-commerce, shop, orders, payment, payment gateway, payment method, 
-Version: 0.9.0
-Stable tag: 0.9.0
+Version: 1.0.0
+Stable tag: 1.0.0
 Requires at least: 5.0
 Tested up to: 6.9
 WC tested up to: 10
@@ -70,6 +70,18 @@ This plugin sends data to an external service, like the categories and the price
 
 == Changelog ==
 
+= 1.0.0 =
+Data di rilascio: 27 Gennaio, 2026
+
+    * Nuovo: Sistema di invio multiplo ISBN per ordini con più prodotti
+    * Nuovo: Supporto per recupero ISBN da variazioni di prodotto (con fallback al prodotto padre)
+    * Nuovo: Interfaccia admin per configurazione campo ISBN (meta, attributo, campo personalizzato)
+    * Nuovo: Validazione checksum ISBN-13 e controllo lunghezza
+    * Nuovo: Suddivisione proporzionale dell'importo Confirm tra i prodotti con ISBN
+    * Migliorato: Log dettagliato per debug delle operazioni SOAP
+    * Migliorato: Gestione errori e messaggi utente più chiari
+    * Aggiornato: WSDL per operazione InsertISBN
+    * Corretto: Conformità al regolamento Carta della Cultura per invio dati ISBN
 
 = 0.9.0 =
 Data di rilascio: 14 Ottobre, 2025

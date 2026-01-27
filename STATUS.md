@@ -58,10 +58,23 @@
 - Buono superiore/inferiore/uguale all'ordine
 - Modalità sandbox con buoni test
 
-## Prossimi Passi
-1. Test end-to-end con buoni validi (sandbox)
-2. Verifica risposta `InsertISBN` e gestione errori
-3. Eventuale ottimizzazione calcolo proporzionale (arrotondamenti)
+## Release 1.0.0 - 27 Gennaio 2026
+
+### Funzionalità implementate
+- Sistema di invio multiplo ISBN per ordini con più prodotti
+- Supporto per recupero ISBN da variazioni di prodotto (con fallback al prodotto padre)
+- Interfaccia admin per configurazione campo ISBN (meta, attributo, campo personalizzato)
+- Validazione checksum ISBN-13 e controllo lunghezza
+- Suddivisione proporzionale dell'importo Confirm tra i prodotti con ISBN
+- Gestione buoni di valore inferiore al totale ordine (conversione in coupon)
+- Log dettagliato per debug delle operazioni SOAP
+- Gestione errori e messaggi utente più chiari
+- Conformità al regolamento Carta della Cultura per invio dati ISBN
+
+### Prossimi Passi (post-release)
+1. Pulizia dei log di debug per la versione di produzione
+2. Implementazione sistema di logging opzionale per assistenza
+3. Test end-to-end in ambiente sandbox con scenari complessi
 4. Documentazione utente finale per configurazione campo ISBN
 
 ## File Modificati
