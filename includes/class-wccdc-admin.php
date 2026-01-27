@@ -193,6 +193,23 @@ class WCCDC_Admin {
 	}
 
 	/**
+	 * Pulsante call to action Premium
+	 *
+	 * @param bool $no_margin aggiunge la classe CSS con true.
+	 *
+	 * @return string
+	 */
+	public function get_go_premium( $no_margin = false ) {
+
+		$output      = '<span class="label label-warning premium' . ( $no_margin ? ' no-margin' : null ) . '">';
+			$output .= '<a href="https://www.ilghera.com/product/carta-della-cultura-for-wc-premium" target="_blank">Premium</a>';
+		$output     .= '</span>';
+
+		return $output;
+
+	}
+
+	/**
 	 * Trasforma il contenuto di un certificato .pem in .der
 	 *
 	 * @param  string $pem_data il certificato .pem.
