@@ -265,6 +265,24 @@ var wccdc_isbn_field = function() {
     jQuery(function($){
         $(document).ready(function() {
             
+            // Mostra/nascondi sezione personalizzata in base alla fonte principale
+            $('input[name="wccdc-isbn-primary-source"]').on('change', function() {
+                var selected = $(this).val();
+                if (selected === 'custom') {
+                    $('#wccdc-custom-isbn-section').show();
+                } else {
+                    $('#wccdc-custom-isbn-section').hide();
+                }
+            });
+            
+            // Mostra/nascondi al caricamento della pagina
+            $(document).ready(function() {
+                var selected = $('input[name="wccdc-isbn-primary-source"]:checked').val();
+                if (selected === 'custom') {
+                    $('#wccdc-custom-isbn-section').show();
+                }
+            });
+            
             // Mostra/nascondi campo manuale quando cambia la selezione
             $('select.wccdc-isbn-field').on('change', function() {
                 if ($(this).val() === 'custom') {
@@ -274,12 +292,9 @@ var wccdc_isbn_field = function() {
                 }
             });
             
-            // Aggiorna il dropdown quando cambia la fonte ISBN
+            // Aggiorna il dropdown quando cambia la fonte ISBN (meta/attribute)
             $('input[name="wccdc-isbn-source"]').on('change', function() {
                 var source = $(this).val();
-                var $dropdown = $('select.wccdc-isbn-field');
-                var currentValue = $dropdown.val();
-                
                 // Ricarica la pagina per aggiornare il dropdown con i campi corretti
                 // Invia il form per salvare la selezione
                 var $form = $('form[name="wccdc-options"]');
@@ -290,7 +305,11 @@ var wccdc_isbn_field = function() {
                 if ($form.find('input[name="wccdc-settings-nonce"]').length === 0) {
                     $form.append('<input type="hidden" name="wccdc-settings-nonce" value="' + (wccdcData.settingsNonce || '') + '">');
                 }
+                // Aggiungi un campo nascosto per indicare che stiamo cambiando solo la fonte
                 $form.append('<input type="hidden" name="wccdc-isbn-source-temp" value="' + source + '">');
+                // Aggiungi un campo per forzare il refresh senza cache
+                $form.append('<input type="hidden" name="wccdc-force-refresh" value="1">');
+                // Invia il form
                 $form.submit();
             });
             

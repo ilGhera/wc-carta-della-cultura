@@ -147,92 +147,6 @@ class WCCDC_Soap_Client {
 	}
 
 	/**
-	 * Chiamata Check di tipo 1 e 2
-	 *
-	 * @param  integer $value il tipo di operazione da eseguire
-	 * 1 per solo controllo
-	 * 2 per scalare direttamente il valore del buono.
-	 */
-	public function check( $value = 1 ) {
-		$check = $this->soap_client()->Check(
-			array(
-				'checkReq' => array(
-					'tipoOperazione' => $value,
-					'codiceVoucher'  => $this->codice_voucher,
-					'importo'        => $this->import,
-				),
-			)
-		);
-
-		return $check;
-	}
-
-	/**
-	 * Chiamata Confirm utile ad utilizzare solo parte del valore del buono
-	 */
-	public function confirm() {
-		$confirm = $this->soap_client()->Confirm(
-			array(
-				'checkReq' => array(
-					'tipoOperazione' => '1',
-					'codiceVoucher'  => $this->codice_voucher,
-					'importo'        => $this->import,
-				),
-			)
-		);
-
-		return $confirm;
-	}
-
-	/**
-	 * Inserisce gli ISBN per la validazione del buono
-	 *
-	 * @param int|null $order_id ID dell'ordine per ottenere ISBN.
-	 * @return mixed
-	 */
-	public function insert_isbn( $order_id = null ) {
-		error_log('WCCDC DEBUG insert_isbn START - Order ID: ' . $order_id . ', Voucher: ' . $this->codice_voucher . ', Import: ' . $this->import);
-		
-		// Ottieni lista di tutti gli ISBN con importi proporzionali
-		$isbn_list = $order_id ? $this->get_isbn_list_from_order( $order_id, $this->import ) : null;
-		error_log('WCCDC DEBUG insert_isbn - ISBN list retrieved: ' . ($isbn_list ? print_r($isbn_list, true) : 'NULL'));
-		
-		// Secondo il WSDL, InsertISBN richiede codiceVoucher, tipoOperazione e listaISBN
-		// listaISBN è un array di DettaglioIsbnBean (importo e isbn)
-		$insert_data = array(
-			'codiceVoucher'  => $this->codice_voucher,
-			'tipoOperazione' => '1',
-		);
-		
-		if ( $isbn_list && is_array( $isbn_list ) ) {
-			// Crea listaISBN con tutti gli elementi
-			$dettaglio_isbn = array();
-			foreach ( $isbn_list as $item ) {
-				$dettaglio_isbn[] = array(
-					'importo' => $item['importo'],
-					'isbn'    => $item['isbn'],
-				);
-			}
-			
-			$insert_data['listaISBN'] = array(
-				'dettaglioISBN' => $dettaglio_isbn
-			);
-			error_log('WCCDC DEBUG insert_isbn - Adding listaISBN with ' . count($dettaglio_isbn) . ' elementi');
-		} else {
-			error_log('WCCDC DEBUG insert_isbn - No ISBN list, sending without listaISBN');
-		}
-		
-		try {
-			$response = $this->soap_client()->InsertISBN( $insert_data );
-			error_log('WCCDC DEBUG insert_isbn - Response: ' . print_r($response, true));
-			return $response;
-		} catch ( Exception $e ) {
-			error_log('WCCDC DEBUG insert_isbn - Exception: ' . $e->getMessage());
-			throw $e;
-		}
-	}
-
-	/**
 	 * Ottiene tutti i codici ISBN dai prodotti dell'ordine con i relativi importi proporzionali
 	 *
 	 * @param int $order_id ID dell'ordine.
@@ -240,29 +154,22 @@ class WCCDC_Soap_Client {
 	 * @return array|null Array di array con 'isbn' e 'importo', o null se nessun ISBN trovato
 	 */
 	private function get_isbn_list_from_order( $order_id, $importo_totale ) {
-		error_log('WCCDC DEBUG get_isbn_list_from_order START - Order ID: ' . $order_id . ', Importo totale: ' . $importo_totale);
-		
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
-			error_log('WCCDC DEBUG get_isbn_list_from_order - Order not found');
 			return null;
 		}
 
 		// Ottieni il campo ISBN configurato
 		$isbn_field = get_option( 'wccdc-isbn-field' );
-		error_log('WCCDC DEBUG get_isbn_list_from_order - ISBN field setting: ' . $isbn_field);
-		
+
 		if ( empty( $isbn_field ) || $isbn_field === 'none' ) {
-			error_log('WCCDC DEBUG get_isbn_list_from_order - ISBN field is none or empty');
 			return null;
 		}
 
 		// Se è un campo personalizzato (custom)
 		if ( $isbn_field === 'custom' ) {
 			$isbn_field = get_option( 'wccdc-custom-isbn-field-value' );
-			error_log('WCCDC DEBUG get_isbn_list_from_order - Custom field value: ' . $isbn_field);
 			if ( empty( $isbn_field ) ) {
-				error_log('WCCDC DEBUG get_isbn_list_from_order - Custom field is empty');
 				return null;
 			}
 		}
@@ -270,88 +177,411 @@ class WCCDC_Soap_Client {
 		$isbn_list = array();
 		$items_with_isbn = 0;
 		$total_items_price = 0;
-		
+
 		// Prima passata: conta prodotti con ISBN e calcola prezzo totale dei prodotti con ISBN
 		foreach ( $order->get_items() as $item ) {
 			$product = $item->get_product();
 			if ( ! $product ) {
 				continue;
 			}
-			
+
 			$isbn = $this->get_isbn_from_product( $product, $isbn_field );
 			if ( ! empty( $isbn ) ) {
 				$items_with_isbn++;
 				$total_items_price += $item->get_total();
 			}
 		}
-		
-		error_log('WCCDC DEBUG get_isbn_list_from_order - Prodotti con ISBN: ' . $items_with_isbn . ', Totale prezzi: ' . $total_items_price);
-		
+
 		if ( $items_with_isbn === 0 ) {
-			error_log('WCCDC DEBUG get_isbn_list_from_order - Nessun ISBN trovato in nessun prodotto');
 			return null;
 		}
-		
+
 		// Seconda passata: crea lista ISBN con importi proporzionali
 		foreach ( $order->get_items() as $item ) {
 			$product = $item->get_product();
 			if ( ! $product ) {
 				continue;
 			}
-			
+
 			$isbn = $this->get_isbn_from_product( $product, $isbn_field );
 			if ( ! empty( $isbn ) ) {
 				// Calcola importo proporzionale per questo prodotto
 				$item_price = $item->get_total();
-				$proportion = $total_items_price > 0 ? $item_price / $total_items_price : 0;
-				$item_import = round( $importo_totale * $proportion, 2 );
-				
-				// Pulisci ISBN (solo numeri)
+				if ( $total_items_price > 0 ) {
+					$item_import = round( ( $item_price / $total_items_price ) * $importo_totale, 2 );
+				} else {
+					$item_import = round( $importo_totale / $items_with_isbn, 2 );
+				}
+
+				// Pulisci ISBN (rimuovi spazi, trattini) e mantieni solo numeri
 				$clean_isbn = preg_replace( '/[^0-9]/', '', $isbn );
+
 				if ( ! empty( $clean_isbn ) ) {
-					$isbn_list[] = array(
-						'isbn'    => $clean_isbn,
-						'importo' => $item_import,
-					);
+					// Valida lunghezza ISBN (deve essere 13 cifre esatte)
+					if ( strlen( $clean_isbn ) === 13 ) {
+						// Valida checksum ISBN-13
+						if ( $this->validate_isbn_13( $clean_isbn ) ) {
+							$isbn_list[] = array(
+								'isbn'    => $clean_isbn,
+								'importo' => $item_import,
+							);
+						} else {
+							// Lancia eccezione per bloccare l'ordine prima di spendere il buono
+							throw new Exception( sprintf( __( 'ISBN non valido: %s (checksum errato)', 'ilghera-carta-della-cultura-for-woocommerce' ), $clean_isbn ) );
+						}
+					} else {
+						// Lancia eccezione per bloccare l'ordine prima di spendere il buono
+						throw new Exception( sprintf( __( 'ISBN non valido: %s (attese 13 cifre, trovate %d)', 'ilghera-carta-della-cultura-for-woocommerce' ), $clean_isbn, strlen($clean_isbn) ) );
+					}
 				}
 			}
 		}
 
-		error_log('WCCDC DEBUG get_isbn_list_from_order - Final ISBN list: ' . print_r($isbn_list, true));
 		return $isbn_list;
 	}
 
 	/**
-	 * Recupera l'ISBN da un prodotto in base al campo configurato
+	 * Ottiene l'ISBN da un singolo prodotto
 	 *
-	 * @param WC_Product $product    Il prodotto.
-	 * @param string     $isbn_field Il campo ISBN configurato.
+	 * @param WC_Product $product Il prodotto.
+	 * @param string $isbn_field Il campo ISBN configurato.
 	 * @return string|null ISBN o null se non trovato
 	 */
-	private function get_isbn_from_product( $product, $isbn_field ) {
+	public function get_isbn_from_product( $product, $isbn_field ) {
 		$isbn = null;
-		
+
+		// Determina la fonte principale configurata
+		$primary_source = get_option( 'wccdc-isbn-primary-source', 'wc_native' );
+
+		// 1. Se fonte principale è "wc_native", cerca SOLO il campo nativo di WooCommerce
+		if ( $primary_source === 'wc_native' ) {
+			if ( method_exists( $product, 'get_global_unique_id' ) ) {
+				$global_id = $product->get_global_unique_id();
+				if ( ! empty( $global_id ) ) {
+					$isbn = $global_id;
+					return $isbn;
+				} else {
+					// Per varianti, prova a ottenere il GUID dal prodotto padre
+					if ( $product->is_type( 'variation' ) ) {
+						$parent_id = $product->get_parent_id();
+						if ( $parent_id ) {
+							$parent_product = wc_get_product( $parent_id );
+							if ( $parent_product && method_exists( $parent_product, 'get_global_unique_id' ) ) {
+								$parent_global_id = $parent_product->get_global_unique_id();
+								if ( ! empty( $parent_global_id ) ) {
+									$isbn = $parent_global_id;
+									return $isbn;
+								}
+							}
+						}
+					}
+					return null;
+				}
+			}
+			// Se il metodo non esiste, restituisci null
+			return null;
+		}
+
+		// 2. Se fonte principale è "custom", cerca SOLO nei campi configurati (meta, attributo, manuale)
 		// Determina se è un meta field o un attributo
 		if ( strpos( $isbn_field, 'meta:' ) === 0 ) {
 			// Campo meta
 			$meta_key = substr( $isbn_field, 5 );
 			$isbn = $product->get_meta( $meta_key );
+			// Se vuoto e siamo in una variante, prova dal padre
+			if ( empty( $isbn ) && $product->is_type( 'variation' ) ) {
+				$parent_id = $product->get_parent_id();
+				if ( $parent_id ) {
+					$parent_product = wc_get_product( $parent_id );
+					if ( $parent_product ) {
+						$isbn = $parent_product->get_meta( $meta_key );
+					}
+				}
+			}
 		} elseif ( strpos( $isbn_field, 'attribute:' ) === 0 ) {
 			// Attributo di prodotto (globale)
-			$attr_slug = substr( $isbn_field, 10 );
-			$isbn = $product->get_attribute( $attr_slug );
+			$taxonomy = substr( $isbn_field, 10 );
+			$isbn = $product->get_attribute( $taxonomy );
+			// Se l'attributo è vuoto, prova a ottenere il termine
+			if ( empty( $isbn ) ) {
+				$terms = wp_get_post_terms( $product->get_id(), $taxonomy );
+				if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+					$isbn = $terms[0]->name;
+				}
+			}
+			// Se ancora vuoto e siamo in una variante, prova dal padre
+			if ( empty( $isbn ) && $product->is_type( 'variation' ) ) {
+				$parent_id = $product->get_parent_id();
+				if ( $parent_id ) {
+					$parent_product = wc_get_product( $parent_id );
+					if ( $parent_product ) {
+						$isbn = $parent_product->get_attribute( $taxonomy );
+						if ( empty( $isbn ) ) {
+							$terms = wp_get_post_terms( $parent_id, $taxonomy );
+							if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+								$isbn = $terms[0]->name;
+							}
+						}
+					}
+				}
+			}
 		} else {
-			// Se non ha prefisso, assume sia un meta
-			$isbn = $product->get_meta( $isbn_field );
+			// Inserimento manuale: normalizza il nome
+			$field_lower = strtolower( trim( $isbn_field ) );
+
+			// 1. Prova come meta field usando get_meta() (case-insensitive)
+			// Ottieni tutti i meta keys del prodotto
+			$meta_keys = $product->get_meta_data();
+			foreach ( $meta_keys as $meta ) {
+				if ( strtolower( $meta->key ) === $field_lower ) {
+					$isbn = $product->get_meta( $meta->key );
+					break;
+				}
+			}
+
+			// 2. Se non trovato come meta, prova come attributo
+			if ( empty( $isbn ) ) {
+				// Per attributi globali: aggiungi automaticamente 'pa_' se non presente
+				$taxonomy = $field_lower;
+				if ( strpos( $taxonomy, 'pa_' ) !== 0 ) {
+					$taxonomy = 'pa_' . $taxonomy;
+				}
+
+				// Prova con il prefisso pa_
+				$isbn = $product->get_attribute( $taxonomy );
+				if ( empty( $isbn ) ) {
+					$terms = wp_get_post_terms( $product->get_id(), $taxonomy );
+					if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+						$isbn = $terms[0]->name;
+					}
+				}
+
+				// Se ancora vuoto, prova senza pa_ (attributo personalizzato di prodotto)
+				if ( empty( $isbn ) ) {
+					$taxonomy = $field_lower;
+					if ( strpos( $taxonomy, 'pa_' ) === 0 ) {
+						$taxonomy = substr( $taxonomy, 3 );
+					}
+					$isbn = $product->get_attribute( $taxonomy );
+					if ( empty( $isbn ) ) {
+						// Per attributi personalizzati, cerca nei meta con prefisso 'attribute_'
+						$attribute_meta_key = 'attribute_' . $taxonomy;
+						$isbn = $product->get_meta( $attribute_meta_key );
+					}
+				}
+			}
+
+			// 3. Se ancora vuoto e siamo in una variante, prova dal padre (per meta e attributi)
+			if ( empty( $isbn ) && $product->is_type( 'variation' ) ) {
+				$parent_id = $product->get_parent_id();
+				if ( $parent_id ) {
+					$parent_product = wc_get_product( $parent_id );
+					if ( $parent_product ) {
+						// Prova come meta nel padre
+						$meta_keys = $parent_product->get_meta_data();
+						foreach ( $meta_keys as $meta ) {
+							if ( strtolower( $meta->key ) === $field_lower ) {
+								$isbn = $parent_product->get_meta( $meta->key );
+								break;
+							}
+						}
+
+						// Se ancora vuoto, prova come attributo nel padre
+						if ( empty( $isbn ) ) {
+							$taxonomy = $field_lower;
+							if ( strpos( $taxonomy, 'pa_' ) !== 0 ) {
+								$taxonomy = 'pa_' . $taxonomy;
+							}
+							$isbn = $parent_product->get_attribute( $taxonomy );
+							if ( empty( $isbn ) ) {
+								$terms = wp_get_post_terms( $parent_id, $taxonomy );
+								if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+									$isbn = $terms[0]->name;
+								}
+							}
+							if ( empty( $isbn ) ) {
+								$taxonomy = $field_lower;
+								if ( strpos( $taxonomy, 'pa_' ) === 0 ) {
+									$taxonomy = substr( $taxonomy, 3 );
+								}
+								$isbn = $parent_product->get_attribute( $taxonomy );
+								if ( empty( $isbn ) ) {
+									$attribute_meta_key = 'attribute_' . $taxonomy;
+									$isbn = $parent_product->get_meta( $attribute_meta_key );
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 
-		// Se l'ISBN è un array (può succedere con alcuni plugin), prendi il primo valore
-		if ( is_array( $isbn ) && ! empty( $isbn ) ) {
-			$isbn = reset( $isbn );
-		}
-
-		return $isbn ? (string) $isbn : null;
+		return $isbn;
 	}
 
-}
+	/**
+	 * Chiamata Check di tipo 1 e 2
+	 *
+	 * @param  integer $value il tipo di operazione da eseguire
+	 * 1 per solo controllo
+	 * 2 per scalare direttamente il valore del buono.
+	 * @param  int|null $order_id ID dell'ordine per ottenere ISBN.
+	 */
+	public function check( $value = 1, $order_id = null ) {
+		// Secondo il WSDL, Check richiede solo tipoOperazione e codiceVoucher
+		// partitaIvaEsercente è opzionale, importo, tipoBene e codiceISBN non sono previsti
+		$check_data = array(
+			'tipoOperazione' => $value,
+			'codiceVoucher'  => $this->codice_voucher,
+		);
 
+		try {
+			$check = $this->soap_client()->Check(
+				array(
+					'checkReq' => $check_data,
+				)
+			);
+			return $check;
+		} catch (Exception $e) {
+			// Log dell'errore SOAP per troubleshooting
+			error_log('WCCDC SOAP ERROR check - Exception: ' . $e->getMessage());
+			throw $e;
+		}
+	}
+
+	/**
+	 * Chiamata Confirm utile ad utilizzare solo parte del valore del buono
+	 *
+	 * @param int|null $order_id ID dell'ordine per ottenere ISBN.
+	 */
+	public function confirm( $order_id = null ) {
+		// Secondo il WSDL, Confirm richiede tipoOperazione, codiceVoucher e importo
+		// tipoBene e codiceISBN non sono previsti
+		$confirm_data = array(
+			'tipoOperazione' => '1',
+			'codiceVoucher'  => $this->codice_voucher,
+			'importo'        => $this->import,
+		);
+
+		try {
+			$confirm = $this->soap_client()->Confirm(
+				array(
+					'checkReq' => $confirm_data,
+				)
+			);
+			return $confirm;
+		} catch (Exception $e) {
+			// Log dell'errore SOAP per troubleshooting
+			error_log('WCCDC SOAP ERROR confirm - Exception: ' . $e->getMessage());
+			throw $e;
+		}
+	}
+
+	/**
+	 * Valida checksum ISBN-13
+	 *
+	 * @param string $isbn ISBN pulito (solo cifre).
+	 * @return bool
+	 */
+	private function validate_isbn_13( $isbn ) {
+		// Algoritmo di validazione ISBN-13
+		$sum = 0;
+		for ( $i = 0; $i < 12; $i++ ) {
+			$digit = (int) $isbn[$i];
+			// Moltiplicatore: 1 per posizioni dispari (0-based), 3 per pari
+			$multiplier = ( $i % 2 === 0 ) ? 1 : 3;
+			$sum += $digit * $multiplier;
+		}
+		$checksum = (10 - ($sum % 10)) % 10;
+		return $checksum === (int) $isbn[12];
+	}
+
+	/**
+	 * Chiamata InsertISBN per inviare i dettagli ISBN dopo la confirm
+	 *
+	 * @param int|null $order_id ID dell'ordine per ottenere ISBN.
+	 * @return mixed
+	 */
+	public function insert_isbn( $order_id = null ) {
+		// Ottieni lista di tutti gli ISBN con importi proporzionali
+		$isbn_list = $order_id ? $this->get_isbn_list_from_order( $order_id, $this->import ) : null;
+
+		// Se non ci sono ISBN, controlla se il campo ISBN è configurato
+		$isbn_field = get_option( 'wccdc-isbn-field' );
+		if ( empty( $isbn_list ) ) {
+			// Se il campo ISBN è configurato (non "none"), dobbiamo fallire
+			if ( ! empty( $isbn_field ) && $isbn_field !== 'none' ) {
+				throw new Exception( __( 'ISBN non trovato nei prodotti nonostante il campo sia configurato. Verifica che tutti i prodotti abbiano ISBN valido.', 'ilghera-carta-della-cultura-for-woocommerce' ) );
+			} else {
+				// Campo ISBN non configurato: restituisci OK fittizio
+				return (object) array(
+					'checkResp' => (object) array(
+						'esito' => 'OK'
+					)
+				);
+			}
+		}
+
+		// Secondo il WSDL, InsertISBN richiede ValidazioneRequest con:
+		// - codiceVoucher (string)
+		// - tipoOperazione (string) - probabilmente sempre "1"
+		// - listaISBN (opzionale) con dettaglioISBN array di oggetti con importo e isbn
+		$validazione_request = array(
+			'codiceVoucher'  => $this->codice_voucher,
+			'tipoOperazione' => '1',
+		);
+
+		// Crea listaISBN con tutti gli elementi
+		$dettaglio_isbn = array();
+		foreach ( $isbn_list as $item ) {
+			$dettaglio_isbn[] = array(
+				'importo' => $item['importo'],
+				'isbn'    => $item['isbn'],
+			);
+		}
+
+		if ( ! empty( $dettaglio_isbn ) ) {
+			$validazione_request['listaISBN'] = array(
+				'dettaglioISBN' => $dettaglio_isbn
+			);
+		}
+
+		try {
+			// Chiamata InsertISBN con ValidazioneRequest come parametro diretto
+			$response = $this->soap_client()->InsertISBN(
+				$validazione_request
+			);
+
+			// La risposta SOAP può essere un oggetto stdClass con proprietà 'esito' diretta
+			// oppure contenere un wrapper. Normalizziamo la risposta per avere sempre 'esito' a livello principale.
+			$normalized_response = new stdClass();
+
+			if ( isset( $response->esito ) ) {
+				// Risposta diretta con esito
+				$normalized_response->esito = $response->esito;
+			} elseif ( isset( $response->ValidazioneResponse ) && isset( $response->ValidazioneResponse->esito ) ) {
+				// Risposta incapsulata in ValidazioneResponse
+				$normalized_response->esito = $response->ValidazioneResponse->esito;
+			} elseif ( isset( $response->checkResp ) && isset( $response->checkResp->esito ) ) {
+				// Per retrocompatibilità
+				$normalized_response->esito = $response->checkResp->esito;
+			} else {
+				// Se non troviamo esito, assumiamo errore
+				$normalized_response->esito = 'ERRORE';
+			}
+
+			return $normalized_response;
+
+		} catch (Exception $e) {
+			// Log dell'errore SOAP per troubleshooting
+			error_log('WCCDC SOAP ERROR insert_isbn - Exception: ' . $e->getMessage());
+			if (isset($e->detail)) {
+				error_log('WCCDC SOAP ERROR insert_isbn - Exception detail: ' . print_r($e->detail, true));
+			}
+			if (isset($e->faultstring)) {
+				error_log('WCCDC SOAP ERROR insert_isbn - Fault string: ' . $e->faultstring);
+			}
+			throw $e;
+		}
+	}
+}

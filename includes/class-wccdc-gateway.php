@@ -48,6 +48,146 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 		add_action( 'woocommerce_email_after_order_table', array( $this, 'display_code' ), 10, 1 );
 		add_action( 'woocommerce_admin_order_data_after_billing_address', array( $this, 'display_code' ), 10, 1 );
 
+		/* Filters */
+		add_filter( 'woocommerce_available_payment_gateways', array( $this, 'unset_wccdc_gateway' ) );
+
+	}
+
+	/**
+	 * Disabilita il metodo di pagamento se i prodotti a carrello non sono nella categoria "libri"
+	 * O se i prodotti hanno ISBN non validi (quando configurato)
+	 *
+	 * @param array $available_gateways I metodi di pagamento disponibili.
+	 *
+	 * @return array I metodi aggiornati
+	 */
+	public function unset_wccdc_gateway( $available_gateways ) {
+
+		if ( is_admin() || ! is_checkout() || ! get_option( 'wccdc-items-check' ) ) {
+
+			return $available_gateways;
+
+		}
+
+		$categories = get_option( 'wccdc-categories' );
+		if ( empty( $categories ) ) {
+			return $available_gateways;
+		}
+
+		// Estrae solo gli ID delle categorie mappate per "libri"
+		$allowed_cat_ids = array();
+		foreach ( $categories as $cat ) {
+			if ( is_array( $cat ) && isset( $cat['libri'] ) ) {
+				$allowed_cat_ids[] = $cat['libri'];
+			}
+		}
+
+		// Se non ci sono categorie consentite, disabilita il gateway
+		if ( empty( $allowed_cat_ids ) ) {
+			unset( $available_gateways['carta-della-cultura'] );
+			return $available_gateways;
+		}
+
+		// Verifica che tutti i prodotti nel carrello appartengano ad almeno una delle categorie consentite
+		foreach ( WC()->cart->get_cart_contents() as $cart_item_key => $values ) {
+			$product_id = $values['product_id'];
+			$terms      = get_the_terms( $product_id, 'product_cat' );
+			$product_cat_ids = array();
+
+			if ( is_array( $terms ) ) {
+				foreach ( $terms as $term ) {
+					$product_cat_ids[] = $term->term_id;
+				}
+			}
+
+			// Controlla se il prodotto ha almeno una categoria tra quelle consentite
+			$intersect = array_intersect( $product_cat_ids, $allowed_cat_ids );
+			if ( empty( $intersect ) ) {
+				// Prodotto non consentito: disabilita il gateway
+				unset( $available_gateways['carta-della-cultura'] );
+				return $available_gateways;
+			}
+		}
+
+		// Validazione ISBN (se configurato)
+		$isbn_primary_source = get_option( 'wccdc-isbn-primary-source', 'wc_native' );
+		$isbn_field = get_option( 'wccdc-isbn-field' );
+
+		// Flag per verificare che tutti i prodotti abbiano ISBN valido
+		$all_have_valid_isbn = true;
+
+		// Verifica ISBN per ogni prodotto nel carrello
+		foreach ( WC()->cart->get_cart_contents() as $cart_item_key => $values ) {
+			$product = $values['data'];
+			if ( ! is_a( $product, 'WC_Product' ) ) {
+				continue;
+			}
+
+			$isbn = null;
+			$clean_isbn = null;
+
+			// 1. Se fonte principale è "wc_native", cerca il campo nativo WooCommerce
+			if ( $isbn_primary_source === 'wc_native' ) {
+				if ( method_exists( $product, 'get_global_unique_id' ) ) {
+					$isbn = $product->get_global_unique_id();
+					// Se vuoto e siamo in una variante, prova dal padre
+					if ( empty( $isbn ) && $product->is_type( 'variation' ) ) {
+						$parent_id = $product->get_parent_id();
+						if ( $parent_id ) {
+							$parent_product = wc_get_product( $parent_id );
+							if ( $parent_product && method_exists( $parent_product, 'get_global_unique_id' ) ) {
+								$isbn = $parent_product->get_global_unique_id();
+							}
+						}
+					}
+				}
+			}
+			// 2. Se fonte principale è "custom" e campo ISBN configurato
+			elseif ( $isbn_primary_source === 'custom' && ! empty( $isbn_field ) && $isbn_field !== 'none' ) {
+				// Se è un campo personalizzato (custom)
+				if ( $isbn_field === 'custom' ) {
+					$isbn_field = get_option( 'wccdc-custom-isbn-field-value' );
+					if ( empty( $isbn_field ) ) {
+						// Campo personalizzato vuoto: nascondi gateway per sicurezza
+						unset( $available_gateways['carta-della-cultura'] );
+						return $available_gateways;
+					}
+				}
+
+				// Ottieni ISBN usando la funzione pubblica
+				$soap_client = new WCCDC_Soap_Client( '', 0 ); // Voucher e importo non necessari per questa chiamata
+				$isbn = $soap_client->get_isbn_from_product( $product, $isbn_field );
+			}
+
+			// Se non abbiamo ISBN, nascondi gateway
+			if ( empty( $isbn ) ) {
+				$all_have_valid_isbn = false;
+				break;
+			}
+
+			// Pulisci ISBN (rimuovi spazi, trattini)
+			$clean_isbn = preg_replace( '/[^0-9]/', '', $isbn );
+			// Valida lunghezza (13 cifre)
+			if ( strlen( $clean_isbn ) !== 13 ) {
+				// ISBN non valido
+				$all_have_valid_isbn = false;
+				break;
+			}
+			// Valida checksum ISBN-13
+			if ( ! self::validate_isbn_13( $clean_isbn ) ) {
+				// ISBN checksum non valido
+				$all_have_valid_isbn = false;
+				break;
+			}
+		}
+
+		// Se almeno un prodotto non ha ISBN valido, nascondi gateway
+		if ( ! $all_have_valid_isbn ) {
+			unset( $available_gateways['carta-della-cultura'] );
+			return $available_gateways;
+		}
+
+		return $available_gateways;
 	}
 
 	/**
@@ -121,6 +261,26 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Valida checksum ISBN-13
+	 *
+	 * @param string $isbn ISBN pulito (solo cifre).
+	 *
+	 * @return bool
+	 */
+	private static function validate_isbn_13( $isbn ) {
+		// Algoritmo di validazione ISBN-13
+		$sum = 0;
+		for ( $i = 0; $i < 12; $i++ ) {
+			$digit = (int) $isbn[ $i ];
+			// Moltiplicatore: 1 per posizioni dispari (0-based), 3 per pari
+			$multiplier = ( $i % 2 === 0 ) ? 1 : 3;
+			$sum += $digit * $multiplier;
+		}
+		$checksum = ( 10 - ( $sum % 10 ) ) % 10;
+		return $checksum === (int) $isbn[12];
+	}
+
+	/**
 	 * Tutti i prodotti dell'ordine devono essere della tipologia (cat) consentita dal buono Carta della Cultura.
 	 *
 	 * @param  object $order the WC order.
@@ -165,27 +325,6 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Add the shortcode to get the specific checkout URL.
-	 *
-	 * @param array $args the shortcode vars.
-	 *
-	 * @return mixed the URL
-	 */
-	public function get_checkout_payment_url( $args ) {
-
-		$order_id = isset( $args['order-id'] ) ? $args['order-id'] : null;
-
-		if ( $order_id ) {
-
-			$order = wc_get_order( $order_id );
-
-			return $order->get_checkout_payment_url();
-
-		}
-
-	}
-
-	/**
 	 * Mostra il buono Carta della Cultura nella thankyou page, nelle mail e nella pagina dell'ordine.
 	 *
 	 * @param  object $order the WC order.
@@ -194,8 +333,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 	 */
 	public function display_code( $order ) {
 
-		$data       = $order->get_data();
-		$wccdc_code = null;
+		$data = $order->get_data();
 
 		if ( 'carta-della-cultura' === $data['payment_method'] ) {
 
@@ -225,7 +363,7 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 		try {
 
 			/*Prima verifica del buono*/
-			$response      = $soap_client->check();
+			$response      = $soap_client->check( 1, $order_id );
 			$bene          = $response->checkResp->ambito; // Il bene acquistabile con il buono inserito.
 			$importo_buono = floatval( $response->checkResp->importo ); // L'importo del buono inserito.
 			$operation     = null;
@@ -335,4 +473,3 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 	}
 
 }
-
