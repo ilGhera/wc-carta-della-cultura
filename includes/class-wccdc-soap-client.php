@@ -278,6 +278,21 @@ class WCCDC_Soap_Client {
 					error_log('WCCDC DEBUG get_isbn_from_product - Global Unique ID found (primary source): ' . $isbn);
 					return $isbn;
 				} else {
+					// Per varianti, prova a ottenere il GUID dal prodotto padre
+					if ( $product->is_type( 'variation' ) ) {
+						$parent_id = $product->get_parent_id();
+						if ( $parent_id ) {
+							$parent_product = wc_get_product( $parent_id );
+							if ( $parent_product && method_exists( $parent_product, 'get_global_unique_id' ) ) {
+								$parent_global_id = $parent_product->get_global_unique_id();
+								if ( ! empty( $parent_global_id ) ) {
+									$isbn = $parent_global_id;
+									error_log('WCCDC DEBUG get_isbn_from_product - Using parent product Global Unique ID: ' . $isbn);
+									return $isbn;
+								}
+							}
+						}
+					}
 					error_log('WCCDC DEBUG get_isbn_from_product - Global Unique ID not found, returning NULL');
 					return null;
 				}
@@ -294,6 +309,17 @@ class WCCDC_Soap_Client {
 			$meta_key = substr( $isbn_field, 5 );
 			$isbn = $product->get_meta( $meta_key );
 			error_log('WCCDC DEBUG get_isbn_from_product - Meta field lookup: key=' . $meta_key . ', value=' . $isbn);
+			// Se vuoto e siamo in una variante, prova dal padre
+			if ( empty( $isbn ) && $product->is_type( 'variation' ) ) {
+				$parent_id = $product->get_parent_id();
+				if ( $parent_id ) {
+					$parent_product = wc_get_product( $parent_id );
+					if ( $parent_product ) {
+						$isbn = $parent_product->get_meta( $meta_key );
+						error_log('WCCDC DEBUG get_isbn_from_product - Parent meta field lookup: key=' . $meta_key . ', value=' . $isbn);
+					}
+				}
+			}
 		} elseif ( strpos( $isbn_field, 'attribute:' ) === 0 ) {
 			// Attributo di prodotto (globale)
 			$taxonomy = substr( $isbn_field, 10 );
@@ -305,6 +331,24 @@ class WCCDC_Soap_Client {
 				if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
 					$isbn = $terms[0]->name;
 					error_log('WCCDC DEBUG get_isbn_from_product - Term lookup: term=' . $isbn);
+				}
+			}
+			// Se ancora vuoto e siamo in una variante, prova dal padre
+			if ( empty( $isbn ) && $product->is_type( 'variation' ) ) {
+				$parent_id = $product->get_parent_id();
+				if ( $parent_id ) {
+					$parent_product = wc_get_product( $parent_id );
+					if ( $parent_product ) {
+						$isbn = $parent_product->get_attribute( $taxonomy );
+						error_log('WCCDC DEBUG get_isbn_from_product - Parent attribute lookup: taxonomy=' . $taxonomy . ', value=' . $isbn);
+						if ( empty( $isbn ) ) {
+							$terms = wp_get_post_terms( $parent_id, $taxonomy );
+							if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+								$isbn = $terms[0]->name;
+								error_log('WCCDC DEBUG get_isbn_from_product - Parent term lookup: term=' . $isbn);
+							}
+						}
+					}
 				}
 			}
 		} else {
@@ -361,6 +405,53 @@ class WCCDC_Soap_Client {
 						$attribute_meta_key = 'attribute_' . $taxonomy;
 						$isbn = $product->get_meta( $attribute_meta_key );
 						error_log('WCCDC DEBUG get_isbn_from_product - Trying attribute meta: ' . $attribute_meta_key . ', value=' . $isbn);
+					}
+				}
+			}
+			
+			// 3. Se ancora vuoto e siamo in una variante, prova dal padre (per meta e attributi)
+			if ( empty( $isbn ) && $product->is_type( 'variation' ) ) {
+				$parent_id = $product->get_parent_id();
+				if ( $parent_id ) {
+					$parent_product = wc_get_product( $parent_id );
+					if ( $parent_product ) {
+						// Prova come meta nel padre
+						$meta_keys = $parent_product->get_meta_data();
+						foreach ( $meta_keys as $meta ) {
+							if ( strtolower( $meta->key ) === $field_lower ) {
+								$isbn = $parent_product->get_meta( $meta->key );
+								error_log('WCCDC DEBUG get_isbn_from_product - Found in parent as meta: key=' . $meta->key . ', value=' . $isbn);
+								break;
+							}
+						}
+						
+						// Se ancora vuoto, prova come attributo nel padre
+						if ( empty( $isbn ) ) {
+							$taxonomy = $field_lower;
+							if ( strpos( $taxonomy, 'pa_' ) !== 0 ) {
+								$taxonomy = 'pa_' . $taxonomy;
+							}
+							$isbn = $parent_product->get_attribute( $taxonomy );
+							if ( empty( $isbn ) ) {
+								$terms = wp_get_post_terms( $parent_id, $taxonomy );
+								if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+									$isbn = $terms[0]->name;
+									error_log('WCCDC DEBUG get_isbn_from_product - Found in parent as term: term=' . $isbn);
+								}
+							}
+							if ( empty( $isbn ) ) {
+								$taxonomy = $field_lower;
+								if ( strpos( $taxonomy, 'pa_' ) === 0 ) {
+									$taxonomy = substr( $taxonomy, 3 );
+								}
+								$isbn = $parent_product->get_attribute( $taxonomy );
+								if ( empty( $isbn ) ) {
+									$attribute_meta_key = 'attribute_' . $taxonomy;
+									$isbn = $parent_product->get_meta( $attribute_meta_key );
+									error_log('WCCDC DEBUG get_isbn_from_product - Trying parent attribute meta: ' . $attribute_meta_key . ', value=' . $isbn);
+								}
+							}
+						}
 					}
 				}
 			}

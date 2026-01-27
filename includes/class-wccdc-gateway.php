@@ -156,8 +156,22 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 			
 			// 1. Se fonte principale è "wc_native", cerca il campo nativo WooCommerce
 			if ( $isbn_primary_source === 'wc_native' ) {
+				error_log('WCCDC DEBUG unset_wccdc_gateway - Checking ISBN for product ID: ' . $product->get_id() . ', type: ' . $product->get_type());
 				if ( method_exists( $product, 'get_global_unique_id' ) ) {
 					$isbn = $product->get_global_unique_id();
+					error_log('WCCDC DEBUG unset_wccdc_gateway - Product ISBN: ' . ($isbn ? $isbn : 'NULL'));
+					// Se vuoto e siamo in una variante, prova dal padre
+					if ( empty( $isbn ) && $product->is_type( 'variation' ) ) {
+						$parent_id = $product->get_parent_id();
+						error_log('WCCDC DEBUG unset_wccdc_gateway - Variant, parent ID: ' . $parent_id);
+						if ( $parent_id ) {
+							$parent_product = wc_get_product( $parent_id );
+							if ( $parent_product && method_exists( $parent_product, 'get_global_unique_id' ) ) {
+								$isbn = $parent_product->get_global_unique_id();
+								error_log('WCCDC DEBUG unset_wccdc_gateway - Parent ISBN: ' . ($isbn ? $isbn : 'NULL'));
+							}
+						}
+					}
 				}
 			} 
 			// 2. Se fonte principale è "custom" e campo ISBN configurato
