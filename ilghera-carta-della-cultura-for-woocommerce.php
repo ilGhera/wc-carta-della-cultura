@@ -5,8 +5,8 @@
  * Description: Abilita in WooCommerce il pagamento con Carta della Cultura prevista dallo stato Italiano.
  * Author: ilGhera
  * Author URI: https://ilghera.com
- * Version: 0.9.1
- * Stable tag: 0.9.1
+ * Version: 0.9.2
+ * Stable tag: 0.9.2
  * Requires at least: 4.0
  * Tested up to: 6.9
  * WC tested up to: 10
@@ -36,7 +36,7 @@ function wccdc_premium_activation() {
 	define( 'WCCDC_URI', plugin_dir_url( __FILE__ ) );
 	define( 'WCCDC_INCLUDES', WCCDC_DIR . 'includes/' );
 	define( 'WCCDC_INCLUDES_URI', WCCDC_URI . 'includes/' );
-	define( 'WCCDC_VERSION', '0.9.1' );
+	define( 'WCCDC_VERSION', '0.9.2' );
 
 	/*Main directory di upload*/
 	$wp_upload_dir = wp_upload_dir();
