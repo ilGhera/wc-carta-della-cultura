@@ -63,53 +63,55 @@ class WCCDC_Gateway extends WC_Payment_Gateway {
 	 */
 	public function unset_wccdc_gateway( $available_gateways ) {
 
-		if ( is_admin() || ! is_checkout() || ! get_option( 'wccdc-items-check' ) ) {
-
-			return $available_gateways;
-
-		}
-
-		$categories = get_option( 'wccdc-categories' );
-		if ( empty( $categories ) ) {
+		if ( is_admin() || ! is_checkout() ) {
 			return $available_gateways;
 		}
 
-		// Estrae solo gli ID delle categorie mappate per "libri"
-		$allowed_cat_ids = array();
-		foreach ( $categories as $cat ) {
-			if ( is_array( $cat ) && isset( $cat['libri'] ) ) {
-				$allowed_cat_ids[] = $cat['libri'];
-			}
-		}
-
-		// Se non ci sono categorie consentite, disabilita il gateway
-		if ( empty( $allowed_cat_ids ) ) {
-			unset( $available_gateways['carta-della-cultura'] );
-			return $available_gateways;
-		}
-
-		// Verifica che tutti i prodotti nel carrello appartengano ad almeno una delle categorie consentite
-		foreach ( WC()->cart->get_cart_contents() as $cart_item_key => $values ) {
-			$product_id = $values['product_id'];
-			$terms      = get_the_terms( $product_id, 'product_cat' );
-			$product_cat_ids = array();
-
-			if ( is_array( $terms ) ) {
-				foreach ( $terms as $term ) {
-					$product_cat_ids[] = $term->term_id;
-				}
-			}
-
-			// Controlla se il prodotto ha almeno una categoria tra quelle consentite
-			$intersect = array_intersect( $product_cat_ids, $allowed_cat_ids );
-			if ( empty( $intersect ) ) {
-				// Prodotto non consentito: disabilita il gateway
+		// Controllo categorie (solo se opzione premium "Controllo prodotti" attiva)
+		if ( get_option( 'wccdc-items-check' ) ) {
+			$categories = get_option( 'wccdc-categories' );
+			if ( empty( $categories ) ) {
 				unset( $available_gateways['carta-della-cultura'] );
 				return $available_gateways;
 			}
+
+			// Estrae solo gli ID delle categorie mappate per "libri"
+			$allowed_cat_ids = array();
+			foreach ( $categories as $cat ) {
+				if ( is_array( $cat ) && isset( $cat['libri'] ) ) {
+					$allowed_cat_ids[] = $cat['libri'];
+				}
+			}
+
+			// Se non ci sono categorie consentite, disabilita il gateway
+			if ( empty( $allowed_cat_ids ) ) {
+				unset( $available_gateways['carta-della-cultura'] );
+				return $available_gateways;
+			}
+
+			// Verifica che tutti i prodotti nel carrello appartengano ad almeno una delle categorie consentite
+			foreach ( WC()->cart->get_cart_contents() as $cart_item_key => $values ) {
+				$product_id = $values['product_id'];
+				$terms      = get_the_terms( $product_id, 'product_cat' );
+				$product_cat_ids = array();
+
+				if ( is_array( $terms ) ) {
+					foreach ( $terms as $term ) {
+						$product_cat_ids[] = $term->term_id;
+					}
+				}
+
+				// Controlla se il prodotto ha almeno una categoria tra quelle consentite
+				$intersect = array_intersect( $product_cat_ids, $allowed_cat_ids );
+				if ( empty( $intersect ) ) {
+					// Prodotto non consentito: disabilita il gateway
+					unset( $available_gateways['carta-della-cultura'] );
+					return $available_gateways;
+				}
+			}
 		}
 
-		// Validazione ISBN (se configurato)
+		// Validazione ISBN (sempre attiva - necessaria per conformità CdC)
 		$isbn_primary_source = get_option( 'wccdc-isbn-primary-source', 'wc_native' );
 		$isbn_field = get_option( 'wccdc-isbn-field' );
 
