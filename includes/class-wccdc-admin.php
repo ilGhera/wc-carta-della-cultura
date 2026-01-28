@@ -841,11 +841,11 @@ class WCCDC_Admin {
 
 									echo '<div style="margin-bottom:15px;">';
 										echo '<label style="margin-right:20px;">';
-											echo '<input type="radio" name="wccdc-isbn-source" value="meta"' . checked( $isbn_source, 'meta', false ) . ' disabled /> ';
+											echo '<input type="radio" name="wccdc-isbn-source" value="meta"' . checked( $isbn_source, 'meta', false ) . ' class="wccdc-preview-only" /> ';
 											echo esc_html__( 'Campo personalizzato (meta)', 'ilghera-carta-della-cultura-for-woocommerce' );
 										echo '</label>';
 										echo '<label>';
-											echo '<input type="radio" name="wccdc-isbn-source" value="attribute"' . checked( $isbn_source, 'attribute', false ) . ' disabled /> ';
+											echo '<input type="radio" name="wccdc-isbn-source" value="attribute"' . checked( $isbn_source, 'attribute', false ) . ' class="wccdc-preview-only" /> ';
 											echo esc_html__( 'Attributo di prodotto', 'ilghera-carta-della-cultura-for-woocommerce' );
 										echo '</label>';
 										echo '<p class="description">' . esc_html__( 'Scegli il tipo di campo che contiene l\'ISBN nei tuoi prodotti.', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</p>';
@@ -856,31 +856,21 @@ class WCCDC_Admin {
 									$meta_candidates = isset( $candidates['meta'] ) ? $candidates['meta'] : array();
 									$attribute_candidates = isset( $candidates['attribute'] ) ? $candidates['attribute'] : array();
 									
-									echo '<select name="wccdc-isbn-field" class="wccdc-isbn-field" disabled>';
-										echo '<option value="none"' . selected( $wccdc_isbn_field, 'none', false ) . '>' . 
+									echo '<select name="wccdc-isbn-field" class="wccdc-isbn-field wccdc-preview-only">';
+										echo '<option value="none"' . selected( $wccdc_isbn_field, 'none', false ) . '>' .
 											 esc_html__( 'Nessuno (non inviare ISBN)', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
-										
-										// Mostra i campi in base alla fonte selezionata
+
+										// Mostra i campi in base alla fonte selezionata (come nel premium)
 										if ( $isbn_source === 'meta' ) {
 											// Campi meta
 											if ( ! empty( $meta_candidates ) ) {
 												echo '<optgroup label="' . esc_attr__( 'Campi personalizzati', 'ilghera-carta-della-cultura-for-woocommerce' ) . '">';
 												foreach ( $meta_candidates as $meta_key => $data ) {
 													$option_label = esc_html( $meta_key );
-													echo '<option value="meta:' . esc_attr( $meta_key ) . '"' . selected( $wccdc_isbn_field, 'meta:' . $meta_key, false ) . '>' . 
+													echo '<option value="meta:' . esc_attr( $meta_key ) . '"' . selected( $wccdc_isbn_field, 'meta:' . $meta_key, false ) . '>' .
 														 $option_label . '</option>';
 												}
 												echo '</optgroup>';
-											}
-											// Mostra anche il campo manuale se appartiene a questa fonte
-											$saved_source_for_custom = get_option( 'wccdc-isbn-source-for-custom', '' );
-											if ( $saved_source_for_custom === 'meta' && ! empty( $wccdc_isbn_field ) && $wccdc_isbn_field !== 'none' && $wccdc_isbn_field !== 'custom' ) {
-												if ( strpos( $wccdc_isbn_field, 'meta:' ) !== 0 && strpos( $wccdc_isbn_field, 'attribute:' ) !== 0 ) {
-													echo '<optgroup label="' . esc_attr__( 'Campo manuale', 'ilghera-carta-della-cultura-for-woocommerce' ) . '">';
-													echo '<option value="' . esc_attr( $wccdc_isbn_field ) . '" selected="selected">' . 
-														 esc_html( $wccdc_isbn_field ) . ' ' . esc_html__( '(manuale)', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
-													echo '</optgroup>';
-												}
 											}
 										} elseif ( $isbn_source === 'attribute' ) {
 											// Attributi
@@ -889,27 +879,17 @@ class WCCDC_Admin {
 												foreach ( $attribute_candidates as $taxonomy => $data ) {
 													$label = isset( $data['label'] ) ? $data['label'] : $taxonomy;
 													$option_label = esc_html( $label );
-													echo '<option value="attribute:' . esc_attr( $taxonomy ) . '"' . selected( $wccdc_isbn_field, 'attribute:' . $taxonomy, false ) . '>' . 
+													echo '<option value="attribute:' . esc_attr( $taxonomy ) . '"' . selected( $wccdc_isbn_field, 'attribute:' . $taxonomy, false ) . '>' .
 														 $option_label . '</option>';
 												}
 												echo '</optgroup>';
 											}
-											// Mostra anche il campo manuale se appartiene a questa fonte
-											$saved_source_for_custom = get_option( 'wccdc-isbn-source-for-custom', '' );
-											if ( $saved_source_for_custom === 'attribute' && ! empty( $wccdc_isbn_field ) && $wccdc_isbn_field !== 'none' && $wccdc_isbn_field !== 'custom' ) {
-												if ( strpos( $wccdc_isbn_field, 'meta:' ) !== 0 && strpos( $wccdc_isbn_field, 'attribute:' ) !== 0 ) {
-													echo '<optgroup label="' . esc_attr__( 'Campo manuale', 'ilghera-carta-della-cultura-for-woocommerce' ) . '">';
-													echo '<option value="' . esc_attr( $wccdc_isbn_field ) . '" selected="selected">' . 
-														 esc_html( $wccdc_isbn_field ) . ' ' . esc_html__( '(manuale)', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
-													echo '</optgroup>';
-												}
-											}
 										}
-										
+
 										// Opzione per inserire manualmente un campo non rilevato
-										echo '<option value="custom"' . selected( $wccdc_isbn_field, 'custom', false ) . '>' . 
+										echo '<option value="custom"' . selected( $wccdc_isbn_field, 'custom', false ) . '>' .
 											 esc_html__( 'Inserisci manualmente', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</option>';
-										
+
 									echo '</select>';
 									
 									// Campo di testo per inserimento manuale
@@ -952,11 +932,10 @@ class WCCDC_Admin {
 										 esc_html__( 'Seleziona il campo che contiene il codice ISBN nei tuoi prodotti. Il plugin ha scansionato automaticamente i campi disponibili.', 'ilghera-carta-della-cultura-for-woocommerce' ) . 
 										 '</p>';
 									
-									// Pulsante per forzare una nuova scansione (disabilitato in free)
+									// Pulsante per forzare una nuova scansione (mostra messaggio premium in free)
 									echo '<p>';
-										echo '<a href="#" id="wccdc-rescan-isbn" class="button button-secondary wccdc-disabled" style="opacity:0.5; cursor:not-allowed;" onclick="return false;">' . 
+										echo '<a href="#" id="wccdc-rescan-isbn" class="button button-secondary wccdc-disabled">' .
 											 esc_html__( 'Riesamina campi', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</a>';
-										echo '<span class="spinner" style="float:none;margin-left:5px;"></span>';
 										echo '<span id="wccdc-rescan-message" style="margin-left:10px;"></span>';
 									echo '</p>';
 									
@@ -1077,6 +1056,23 @@ class WCCDC_Admin {
 		wccdcData.rescanIsbnNonce = '<?php echo wp_create_nonce( 'wccdc-rescan-isbn' ); ?>';
 		wccdcData.removeManualFieldNonce = '<?php echo wp_create_nonce( 'wccdc-remove-manual-field' ); ?>';
 		wccdcData.settingsNonce = '<?php echo wp_create_nonce( 'wccdc-save-settings' ); ?>';
+		wccdcData.premiumMessage = '<?php echo esc_js( __( 'Passa a Premium per utilizzare i campi personalizzati.', 'ilghera-carta-della-cultura-for-woocommerce' ) ); ?>';
+		<?php
+		// Passa i candidati ISBN al JS per la versione free (anteprima)
+		$candidates = get_option( 'wccdc-isbn-candidates', array() );
+		$meta_candidates = isset( $candidates['meta'] ) ? $candidates['meta'] : array();
+		$attribute_candidates = isset( $candidates['attribute'] ) ? $candidates['attribute'] : array();
+		?>
+		wccdcData.isbnCandidates = {
+			meta: <?php echo wp_json_encode( array_keys( $meta_candidates ) ); ?>,
+			attribute: <?php echo wp_json_encode( $attribute_candidates ); ?>
+		};
+		wccdcData.i18n = {
+			noneOption: '<?php echo esc_js( __( 'Nessuno (non inviare ISBN)', 'ilghera-carta-della-cultura-for-woocommerce' ) ); ?>',
+			metaGroup: '<?php echo esc_js( __( 'Campi personalizzati', 'ilghera-carta-della-cultura-for-woocommerce' ) ); ?>',
+			attributeGroup: '<?php echo esc_js( __( 'Attributi di prodotto', 'ilghera-carta-della-cultura-for-woocommerce' ) ); ?>',
+			customOption: '<?php echo esc_js( __( 'Inserisci manualmente', 'ilghera-carta-della-cultura-for-woocommerce' ) ); ?>'
+		};
 		</script>
 		<?php
 

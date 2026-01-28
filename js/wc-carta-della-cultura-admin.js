@@ -295,6 +295,36 @@ var wccdc_isbn_field = function() {
             // Aggiorna il dropdown quando cambia la fonte ISBN (meta/attribute)
             $('input[name="wccdc-isbn-source"]').on('change', function() {
                 var source = $(this).val();
+
+                // Se è in modalità preview (versione free), aggiorna la select localmente
+                if ($(this).hasClass('wccdc-preview-only')) {
+                    var $select = $('select.wccdc-isbn-field');
+                    var candidates = wccdcData.isbnCandidates || {};
+                    var i18n = wccdcData.i18n || {};
+
+                    // Ricostruisci la select
+                    $select.empty();
+                    $select.append('<option value="none">' + (i18n.noneOption || 'Nessuno') + '</option>');
+
+                    if (source === 'meta' && candidates.meta && candidates.meta.length > 0) {
+                        var $optgroup = $('<optgroup label="' + (i18n.metaGroup || 'Campi personalizzati') + '"></optgroup>');
+                        candidates.meta.forEach(function(metaKey) {
+                            $optgroup.append('<option value="meta:' + metaKey + '">' + metaKey + '</option>');
+                        });
+                        $select.append($optgroup);
+                    } else if (source === 'attribute' && candidates.attribute) {
+                        var $optgroup = $('<optgroup label="' + (i18n.attributeGroup || 'Attributi di prodotto') + '"></optgroup>');
+                        for (var taxonomy in candidates.attribute) {
+                            var data = candidates.attribute[taxonomy];
+                            var label = data.label || taxonomy;
+                            $optgroup.append('<option value="attribute:' + taxonomy + '">' + label + '</option>');
+                        }
+                        $select.append($optgroup);
+                    }
+
+                    $select.append('<option value="custom">' + (i18n.customOption || 'Inserisci manualmente') + '</option>');
+                    return;
+                }
                 // Ricarica la pagina per aggiornare il dropdown con i campi corretti
                 // Invia il form per salvare la selezione
                 var $form = $('form[name="wccdc-options"]');
@@ -316,9 +346,19 @@ var wccdc_isbn_field = function() {
             // Riesamina campi ISBN (disabilitato in versione free)
             $('#wccdc-rescan-isbn').on('click', function(e) {
                 e.preventDefault();
-                
-                // Se il pulsante è disabilitato (classe wccdc-disabled), non fare nulla
+
+                // Se il pulsante è disabilitato (classe wccdc-disabled), mostra messaggio premium
                 if ($(this).hasClass('wccdc-disabled')) {
+                    var $message = $('#wccdc-rescan-message');
+                    $message.html('<span style="color:#d63638;">' +
+                        (wccdcData.premiumMessage || 'Passa a Premium per utilizzare i campi personalizzati.') +
+                        '</span>');
+                    // Nascondi il messaggio dopo 3 secondi
+                    setTimeout(function() {
+                        $message.fadeOut(300, function() {
+                            $message.html('').show();
+                        });
+                    }, 3000);
                     return;
                 }
                 
