@@ -79,6 +79,14 @@ Data di rilascio: 28 Gennaio, 2026
     * Migliorato: Anteprima controlli ISBN personalizzati per mostrare funzionalità premium
     * Rimosso: Log di debug non necessari
 
+= 0.9.1 =
+Data di rilascio: 22 Gennaio, 2026
+
+    * Corretto: Errori rilevati da wp.org plugin check
+    * Corretto: Gestione esclusione categorie duplicate
+    * Migliorato: Testi e traduzioni per coerenza con il servizio Carta della Cultura
+    * Aggiornato: Certificato demo
+
 = 0.9.0 =
 Data di rilascio: 14 Ottobre, 2025
 
