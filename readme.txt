@@ -1,8 +1,8 @@
 === ilGhera Carta della Cultura for WooCommerce ===
 Contributors: ghera74
 Tags: woocommerce, carta della cultura, payment gateway, bonus cultura, checkout
-Version: 0.9.2
-Stable tag: 0.9.2
+Version: 1.0.0
+Stable tag: 1.0.0
 Requires at least: 5.0
 Tested up to: 6.9
 WC tested up to: 10
@@ -70,7 +70,7 @@ This plugin sends data to an external service, like the categories and the price
 
 == Changelog ==
 
-= 0.9.2 =
+= 1.0.0 =
 Data di rilascio: 28 Gennaio, 2026
 
     * Corretto: Allineamento recupero ISBN tra validazione carrello e elaborazione ordine
