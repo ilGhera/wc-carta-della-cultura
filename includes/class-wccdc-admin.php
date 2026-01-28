@@ -391,9 +391,6 @@ class WCCDC_Admin {
 			)
 		);
 
-		// DEBUG: Log delle chiavi meta trovate
-		error_log('WCCDC ISBN META KEYS FOUND: ' . print_r($meta_keys, true));
-
 		foreach ( $meta_keys as $meta_key ) {
 			// Cerca un valore di esempio reale usando i metodi CRUD di WooCommerce
 			$example_value = '';
@@ -498,8 +495,7 @@ class WCCDC_Admin {
 		// Gestione salvataggio immediato quando si cambia fonte ISBN (deve essere PRIMA di qualsiasi output)
 		if ( isset( $_POST['wccdc-isbn-source-temp'] ) ) {
 			$wccdc_isbn_source_temp = sanitize_text_field( wp_unslash( $_POST['wccdc-isbn-source-temp'] ) );
-			error_log('WCCDC DEBUG: Changing ISBN source to: ' . $wccdc_isbn_source_temp);
-			
+
 			// Ottieni il campo ISBN attualmente salvato
 			$current_isbn_field = get_option( 'wccdc-isbn-field', 'none' );
 			
@@ -515,7 +511,6 @@ class WCCDC_Admin {
 				// Se il campo salvato appartiene a una fonte diversa da quella selezionata, reimposta
 				if ( $current_source && $current_source !== $wccdc_isbn_source_temp ) {
 					update_option( 'wccdc-isbn-field', 'none' );
-					error_log('WCCDC DEBUG: Reset ISBN field to none because source changed');
 				}
 			}
 			
@@ -739,7 +734,7 @@ class WCCDC_Admin {
 					echo '<h3>' . esc_html__( 'Modalità Sandbox', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</h3>';
 				echo '<p class="description">';
 					/* Translators: the email address */
-					printf( wp_kses_post( __( 'Attiva questa funzionalità per testare buoni Carta della Cultura in un ambiente di prova.<br>Richiedi i buoni test scrivendo a <a href="%s">numeroverde@beniculturali.it</a>', 'ilghera-carta-della-cultura-for-woocommerce' ) ), 'mailto:numeroverde@beniculturali.it' );
+					printf( wp_kses_post( __( 'Attiva questa funzionalità per testare buoni Carta della Cultura in un ambiente di prova.<br>Richiedi i buoni test scrivendo a <a href="%s">cartadellacultura@sogei.it</a>', 'ilghera-carta-della-cultura-for-woocommerce' ) ), 'mailto:cartadellacultura@sogei.it' );
 				echo '</p>';
 
 					echo '<form name="wccdc-sandbox" class="wccdc-sandbox" method="post" enctype="multipart/form-data" action="">';
@@ -840,14 +835,10 @@ class WCCDC_Admin {
 							echo '<tr id="wccdc-custom-isbn-section" style="' . ( $show_custom_section ? '' : 'display:none;' ) . '">';
 								echo '<th scope="row">' . esc_html__( 'Configurazione campo personalizzato', 'ilghera-carta-della-cultura-for-woocommerce' ) . '</th>';
 								echo '<td>';
-									
+	
 									$isbn_source = get_option( 'wccdc-isbn-source', 'meta' );
 									$wccdc_isbn_field = get_option( 'wccdc-isbn-field', 'none' );
-									
-									// DEBUG: Log per vedere il valore recuperato
-									error_log('WCCDC DEBUG: Current isbn_source value = ' . $isbn_source);
-									error_log('WCCDC DEBUG: Current isbn_field value = ' . $wccdc_isbn_field);
-									
+
 									echo '<div style="margin-bottom:15px;">';
 										echo '<label style="margin-right:20px;">';
 											echo '<input type="radio" name="wccdc-isbn-source" value="meta"' . checked( $isbn_source, 'meta', false ) . ' disabled /> ';

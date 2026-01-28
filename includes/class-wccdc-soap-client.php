@@ -159,18 +159,25 @@ class WCCDC_Soap_Client {
 			return null;
 		}
 
-		// Ottieni il campo ISBN configurato
-		$isbn_field = get_option( 'wccdc-isbn-field' );
+		// Determina la fonte principale configurata (allineamento con unset_wccdc_gateway)
+		$primary_source = get_option( 'wccdc-isbn-primary-source', 'wc_native' );
 
-		if ( empty( $isbn_field ) || $isbn_field === 'none' ) {
-			return null;
-		}
-
-		// Se è un campo personalizzato (custom)
-		if ( $isbn_field === 'custom' ) {
-			$isbn_field = get_option( 'wccdc-custom-isbn-field-value' );
-			if ( empty( $isbn_field ) ) {
+		// Se la fonte è wc_native, cerca ISBN dal campo nativo di WooCommerce
+		if ( $primary_source === 'wc_native' ) {
+			$isbn_field = 'wc_native'; // Segnaposto per indicare campo nativo
+		} else {
+			// Fonte custom: usa il campo configurato
+			$isbn_field = get_option( 'wccdc-isbn-field' );
+			if ( empty( $isbn_field ) || $isbn_field === 'none' ) {
+				// Campo non configurato per custom: non cercare ISBN
 				return null;
+			}
+			// Se è un campo personalizzato (custom)
+			if ( $isbn_field === 'custom' ) {
+				$isbn_field = get_option( 'wccdc-custom-isbn-field-value' );
+				if ( empty( $isbn_field ) ) {
+					return null;
+				}
 			}
 		}
 
@@ -250,11 +257,8 @@ class WCCDC_Soap_Client {
 	public function get_isbn_from_product( $product, $isbn_field ) {
 		$isbn = null;
 
-		// Determina la fonte principale configurata
-		$primary_source = get_option( 'wccdc-isbn-primary-source', 'wc_native' );
-
-		// 1. Se fonte principale è "wc_native", cerca SOLO il campo nativo di WooCommerce
-		if ( $primary_source === 'wc_native' ) {
+		// Se $isbn_field è 'wc_native', cerca il campo nativo di WooCommerce (allineamento con unset_wccdc_gateway)
+		if ( $isbn_field === 'wc_native' ) {
 			if ( method_exists( $product, 'get_global_unique_id' ) ) {
 				$global_id = $product->get_global_unique_id();
 				if ( ! empty( $global_id ) ) {
@@ -282,7 +286,7 @@ class WCCDC_Soap_Client {
 			return null;
 		}
 
-		// 2. Se fonte principale è "custom", cerca SOLO nei campi configurati (meta, attributo, manuale)
+		// Se $isbn_field non è 'wc_native', usa la logica per custom (meta, attribute, manual)
 		// Determina se è un meta field o un attributo
 		if ( strpos( $isbn_field, 'meta:' ) === 0 ) {
 			// Campo meta
