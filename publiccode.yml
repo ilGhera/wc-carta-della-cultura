@@ -1,0 +1,115 @@
+# This repository adheres to the publiccode.yml standard by including this
+# metadata file that makes public software easily discoverable.
+# More info at https://github.com/italia/publiccode.yml
+
+---
+
+publiccodeYmlVersion: '0.4.0'
+categories:
+  - e-commerce
+description:
+  it:
+    documentation: 'https://www.ilghera.com/documentation/carta-della-cultura/'
+    features:
+      - Carica il tuo certificato .pem
+      - |-
+        Abbina le categorie WooCommerce agli ambiti d'acquisto della Carta
+        della Cultura
+      - Nuovo metodo di pagamento in pagina di checkout
+      - Opzione Sandbox per effettuare test d'acquisto
+      - (Premium) Generazione richiesta certificato .der
+      - (Premium) Generazione certificato .pem
+      - |-
+        (Premium) Conversione valore buono Carta della Cultura in voucher
+        WooCommerce
+      - |-
+        (Premium) Mostra il metodo di pagamento solo se i prodotti sono
+        acquistabili con Carta della Cultura
+      - |-
+        (Premium) Opzione ordini in sospeso con validazione buoni solo a
+        completamento manuale dell'ordine
+    longDescription: |
+      La Carta della Cultura è un programma dello Stato Italiano che offre
+      ai cittadini la possibilità di acquistare beni culturali.
+
+      Possono essere acquistati libri, riviste, ingressi nei musei, biglietti
+      per eventi culturali, teatro e cinema, così come iscrizioni a corsi di
+      aggiornamento, svolti da enti qualificati o accreditati presso il
+      Ministero della Cultura.
+
+      Con **ilGhera Carta della Cultura for WooCommerce**, consentirai ai tuoi
+      clienti di acquistare i tuoi prodotti utilizzando i buoni generati su
+      _Carta della Cultura._
+
+      ​
+
+      ### Presentati come esercente
+
+      Carica il tuo certificato .pem ed identificati come esercente, una luce
+      verde confermerà l'avvenuto collegamento tra le due piattaforme.
+
+      ​
+
+      ### Imposta i prodotti acquistabili
+
+      I buoni generati sulla piattaforma _Carta della Cultura_, possono essere
+      utilizzati solo per acquistare beni della stessa tipologia per i quali
+      sono stati creati.
+
+      Impostando queste categorie con lo strumento dedicato, **ilGhera Carta
+      della Cultura** effettuerà un controllo nella fase di checkout, avvisando
+      se necessario l'utente della mancata corrispondenza.
+
+      ​
+
+      ### Facile per l'utente
+
+      Dopo aver attivato il certificato, **ilGhera Carta della Cultura for
+      WooCommerce** aggiungerà il nuovo metodo di pagamento tra quelli
+      disponibili nella pagina di checkout.
+
+      L'utente non dovrà fare altro che inserire il codice del suo buono.
+    screenshots:
+      - |-
+        https://raw.githubusercontent.com/ilGhera/wc-carta-della-cultura/master/images/icon.png
+    shortDescription: |-
+      Con ilGhera Carta della Cultura for WooCommerce, consentirai ai tuoi
+      clienti di acquistare i tuoi prodotti utilizzando i buoni generati su
+      Carta della Cultura.
+developmentStatus: stable
+intendedAudience:
+  countries:
+    - it
+it:
+  conforme:
+    gdpr: false
+    lineeGuidaDesign: false
+    misureMinimeSicurezza: false
+    modelloInteroperabilita: false
+  countryExtensionVersion: '0.2'
+  piattaforme:
+    anpr: false
+    cie: false
+    pagopa: false
+    spid: false
+legal:
+  license: GPL-3.0-only
+  repoOwner: ilGhera | Software solutions
+localisation:
+  availableLanguages:
+    - it
+  localisationReady: true
+logo: |-
+  https://raw.githubusercontent.com/ilGhera/wc-carta-della-cultura/master/images/icon.png
+maintenance:
+  contacts:
+    - email: andrea@ilghera.com
+      name: Andrea Gherardi
+  type: internal
+name: ilGhera Carta della Cultura for WooCommerce
+platforms:
+  - web
+releaseDate: '2026-01-28'
+softwareType: addon
+softwareVersion: 1.0.0
+url: 'https://github.com/ilGhera/wc-carta-della-cultura'
