@@ -107,6 +107,8 @@ maintenance:
       name: Andrea Gherardi
   type: internal
 name: ilGhera Carta della Cultura for WooCommerce
+organisation:
+  name: ilGhera | Software solutions
 platforms:
   - web
 releaseDate: '2026-01-28'
