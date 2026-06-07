@@ -73,9 +73,7 @@ description:
       - |-
         https://raw.githubusercontent.com/ilGhera/wc-carta-della-cultura/master/images/icon.png
     shortDescription: |-
-      Con ilGhera Carta della Cultura for WooCommerce, consentirai ai tuoi
-      clienti di acquistare i tuoi prodotti utilizzando i buoni generati su
-      Carta della Cultura.
+      Consenti ai clienti di acquistare con Carta della Cultura su WooCommerce.
 developmentStatus: stable
 intendedAudience:
   countries:
@@ -109,6 +107,7 @@ maintenance:
 name: ilGhera Carta della Cultura for WooCommerce
 organisation:
   name: ilGhera | Software solutions
+  uri: https://ilghera.com
 platforms:
   - web
 releaseDate: '2026-01-28'
